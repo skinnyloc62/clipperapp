@@ -43,6 +43,7 @@ model BrandSetting {
 }
 
 enum AssetStatus {
+  pending
   uploaded
   validated
   invalid
@@ -54,6 +55,9 @@ model MediaAsset {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   blobUrl     String
   bytes       Int
+  filename    String?
+  mimeType    String?
+  mediaType   String      @default("video")
   durationSec Float?
   codec       String?
   width       Int?
@@ -124,6 +128,10 @@ model RenderJob {
   clipProjectId String
   clipProject   ClipProject @relation(fields: [clipProjectId], references: [id], onDelete: Cascade)
   renderUrl     String?
+  captionsEnabled Boolean @default(true)
+  captionsApplied Boolean @default(false)
+  musicUrl      String?
+  musicApplied  Boolean @default(false)
   preset        String      @default("vertical-1080x1920-stub")
   status        JobStatus   @default(queued)
   createdAt     DateTime    @default(now())

@@ -47,7 +47,7 @@ function Brand() {
 function NavList({ pathname, onNavigate, hosted }: { pathname: string; onNavigate?: () => void; hosted: boolean }) {
   return (
     <nav aria-label="Primary" className="flex flex-col gap-0.5">
-      {(hosted ? NAV.filter((item) => item.href === "/clips") : NAV).map((item) => {
+      {NAV.map((item) => {
         const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
         return (
           <Link
@@ -118,10 +118,10 @@ export default function AppShell({ children, hosted = false }: { children: React
         <div className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
           <div className="flex items-center gap-2">
             <span className="pulse-dot" aria-hidden="true" />
-            <span className="text-[12px] font-medium text-[var(--text)]">{hosted ? "Published clip viewer" : "Running on this Mac"}</span>
+            <span className="text-[12px] font-medium text-[var(--text)]">{hosted ? "Cloud studio" : "Running on this Mac"}</span>
           </div>
           <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--faint)]">
-            {hosted ? "Approved videos are published from the owner's Mac. This site lets you watch and download them." :
+            {hosted ? "Upload and mark clips here. The Mac processes edits when online; review the results in Approvals." :
               "Uploads, cuts, renders, and downloads are real files in this app's data folder."}
           </p>
           <Link
@@ -184,10 +184,10 @@ export default function AppShell({ children, hosted = false }: { children: React
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
               <div className="flex items-center gap-2">
                 <span className="pulse-dot" aria-hidden="true" />
-                <span className="text-[12px] font-medium">{hosted ? "Published clip viewer" : "Running on this Mac"}</span>
+                <span className="text-[12px] font-medium">{hosted ? "Cloud studio" : "Running on this Mac"}</span>
               </div>
               <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--faint)]">
-                {hosted ? "Watch approved videos published from the owner's Mac." : "Real files in this app's data folder."}
+                {hosted ? "Upload videos, mark clips, and review results. Processing needs the Mac online." : "Real files in this app's data folder."}
               </p>
             </div>
           </div>

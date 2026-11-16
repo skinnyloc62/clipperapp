@@ -1,5 +1,51 @@
 # Handoff — Street Ethics Clip Engine / HGE Clippers
 
+## Creator studio update — 2026-11-16 (deployment verification pending)
+
+The owner expanded the hosted product from a viewer to a creator workflow.
+The working tree now has all seven workspace pages on Vercel: Command Center,
+Live Radar, Clip Inbox, Editor, Approvals, Earnings, and Settings. The hosted
+Editor accepts a long video from a laptop or iPhone directly into Vercel Blob,
+lets the owner mark a range of at most 60 seconds, optionally attach an audio
+file, and queues the render in Neon. The Mac studio worker does the FFmpeg work;
+Vercel itself still has no FFmpeg cutter. Approvals shows completed previews,
+an editable title, Approve and Deny. Approved videos appear in Clip Inbox and
+become downloadable. Deny removes a clip from the active queue while retaining
+the source upload. R2 is not required; the existing Blob + Neon stack is used.
+
+The installed Electron app has no login. Its Clip Inbox now finishes a local
+clip with Whisper speech captions, an editable suggested title, and optional
+owner-provided music on Approve. A 32.133-second real Dean clip completed over
+HTTP 200; the 1080x1920 MP4 had a visible caption, and its approved download
+returned HTTP 200 video/mp4. Another real local clip was approved with an
+eight-second excerpt of an existing owner beat; musicApplied was true. Both
+were local tests and were not published to Vercel. The Electron package was
+rebuilt and installed in `/Applications`; the Desktop icon is a shortcut.
+
+The studio worker is a persistent LaunchAgent named
+`com.streetethics.studio-worker`, with its private 600-mode credentials file
+in the app's Library/Application Support directory. It processed a new real
+10-second job from the previously uploaded Dean source after the single-track
+caption fix. The 1080x1920 Blob render was 4,911,611 bytes with visible, single
+caption lines. That and two earlier worker QA jobs remain unpublished, pending
+owner review. The worker requires this Mac awake and connected to Neon/Blob.
+There is no verified automatic viral prediction or general long-form timeline
+editing. Titles are suggestions for human review; Whisper can mishear speech.
+
+Dean live monitoring was stopped by the owner. `channels.json` is currently
+empty; the watcher now respects an existing empty file instead of reseeding
+Dean. The watcher heartbeat reported zero recording and no channels. Do not
+restart Dean capture without the owner asking.
+
+Before deployment, local checks passed: TypeScript exit 0, 29/29 tests,
+Next production build exit 0, Electron package/install exit 0, and
+`git diff --check` exit 0. After the schema update, a real Neon query found
+all seven tables with RLS enabled, zero policies, and zero public grants.
+Production browser upload, hosted review/download, and mobile navigation still
+need a real post-deployment test. Do not call those proven on the strength of
+the build. See `docs/STUDIO_PLAN.md`, `docs/PROGRESS.md`, and
+`JARVIS/.progress/journal.md` for the resumable state. Never print credentials.
+
 Original handoff written 2026-11-16 01:12 EST. The verified hosted-viewer
 update below supersedes older "no database / no Blob / no publish path" notes.
 

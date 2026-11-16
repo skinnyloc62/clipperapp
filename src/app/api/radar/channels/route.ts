@@ -42,6 +42,7 @@ function workerSummary(): {
 }
 
 export async function GET(): Promise<Response> {
+  if (process.env.VERCEL) return Response.json({ error: "Live monitoring runs on the Mac" }, { status: 501 });
   const user = await requireUser();
   if (user instanceof Response) return user;
 
@@ -65,6 +66,7 @@ export async function GET(): Promise<Response> {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  if (process.env.VERCEL) return Response.json({ error: "Live monitoring runs on the Mac" }, { status: 501 });
   const user = await requireUser();
   if (user instanceof Response) return user;
 
@@ -96,6 +98,7 @@ export async function POST(req: Request): Promise<Response> {
 }
 
 export async function DELETE(req: Request): Promise<Response> {
+  if (process.env.VERCEL) return Response.json({ error: "Live monitoring runs on the Mac" }, { status: 501 });
   const user = await requireUser();
   if (user instanceof Response) return user;
 

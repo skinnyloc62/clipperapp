@@ -14,7 +14,9 @@ import { authBypassActive, isLoopbackHost, sessionCookieName } from "@/lib/auth"
  * happens server-side: pages call getSession(), API routes call requireUser().
  */
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login"];
+// Blob's signed completion callback has no browser cookie. The upload handler
+// verifies that signature; token issuance still checks the user session.
+const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/studio/blob"];
 
 /** App pages that require a session. */
 const PROTECTED_PAGES = ["/", "/clips", "/approvals", "/earnings", "/editor", "/radar", "/settings"];
@@ -63,15 +65,6 @@ export function middleware(req: NextRequest): NextResponse {
       return NextResponse.redirect(url);
     }
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-
-  // The hosted site is a viewer. Cutting, monitoring, and settings live in
-  // the Mac app; direct hosted page URLs must not imply they work on Vercel.
-  if (process.env.VERCEL && protectedPage && pathname !== "/" && !pathname.startsWith("/clips")) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/clips";
-    url.search = "";
-    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();

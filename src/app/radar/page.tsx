@@ -18,6 +18,12 @@ import {
 export const dynamic = "force-dynamic";
 
 export default function RadarPage() {
+  if (process.env.VERCEL) return <div><PageHeader kicker="Workspace" title="Live Radar"
+    description="Live stream monitoring runs in the Mac app. This hosted page does not record streams or receive the Mac's live heartbeat."
+    actions={<Link href="/editor" className="btn btn-primary">Upload a video <Icon name="arrow" size={15} /></Link>} />
+    <div className="card mt-7 p-6"><h2 className="font-semibold">No hosted live feed</h2>
+      <p className="mt-2 text-sm text-[var(--muted)]">Open the Mac app to start or check live capture. This page cannot show its current state. You can still upload and clip long videos in the hosted Editor.</p>
+    </div></div>;
   const snap = readMonitor();
   const channels = listChannels();
   const clips = clipCountsByChannel();

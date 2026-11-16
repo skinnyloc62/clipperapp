@@ -213,13 +213,14 @@ function publishMonitor() {
 
 /**
  * The app owns channels.json: every record it writes here is a channel to
- * watch. When the file is missing or empty the watcher seeds it from
- * WATCH_CHANNELS so a first run is never a silent no-op.
+ * watch. Only a missing file is seeded from WATCH_CHANNELS. An existing empty
+ * registry is the owner's explicit stop decision and must stay empty.
  */
 function readWatchlist() {
-  const all = readJson(CHANNELS_PATH, {});
-  const records = Object.values(all).filter((r) => r && typeof r.slug === "string");
-  if (records.length > 0) return records;
+  if (existsSync(CHANNELS_PATH)) {
+    const all = readJson(CHANNELS_PATH, {});
+    return Object.values(all).filter((r) => r && typeof r.slug === "string");
+  }
 
   const seeded = {};
   const at = nowIso();

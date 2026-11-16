@@ -1,5 +1,68 @@
 # Progress — where this project actually stands
 
+## 2026-11-16 checkpoint — approximately 85% of requested creator workflow
+
+The hosted creator workflow and Electron review changes are implemented in the
+working tree but **not deployed**. Do not describe the live Vercel site as having
+these features yet. The Electron app was repackaged and installed after the
+latest caption fix. The Dean watchlist was emptied at the owner's request; do
+not restart it.
+
+Verified so far: TypeScript exit 0, 29/29 tests pass, Next production build exit
+0, Electron packaging/install exit 0, Prisma schema push to real Neon exit 0.
+The separate Mac studio worker is running through LaunchAgent
+`com.streetethics.studio-worker`; it completed a real 10-second Blob source job
+with vertical render and transcription. That job remains unapproved. Frames at
+2.5s and 6.5s visibly showed captions, but exact caption-change frames stacked
+text in the old implementation. A single RGBA caption track now replaces the
+looping images. The revised worker then completed a new real 10-second job from
+the saved Dean source: 1080x1920, 4,911,611 bytes, visible single captions at
+2.5s and 6.5s. The installed FFmpeg has no `subtitles` filter.
+
+The Electron approval route returned HTTP 200 for a real 32.133-second Dean
+clip. Its new 1080x1920 MP4 is 11,814,799 bytes, a speech caption is visibly
+present at 28.5s, the local registry status became `approved`, and its download
+returned HTTP 200 `video/mp4`. Another real local clip was approved with an
+eight-second excerpt of an existing owner beat; its finishing response reported
+musicApplied true. Earlier attempts failed because looping caption images had
+no output duration and the many-input render timed out; the single
+RGBA track and explicit duration resolved that. The title remains editable.
+
+Working-tree additions: authenticated direct-to-Blob browser upload and source
+picker, manual start/end selection, optional music upload, queued edit jobs,
+hosted review with Approve/Deny and editable title, all seven hosted navigation
+items with truthful page content, plus Electron local caption/title/music
+finishing on approval. The Mac worker, not Vercel, performs FFmpeg jobs. R2 is
+not needed for this implementation.
+
+Remaining before completion: push the checked release, then test a real hosted
+browser upload, Approve/Deny, download behavior, all seven pages, and mobile
+navigation against production. The hosted music upload still needs an actual
+browser test. TypeScript, 29/29 tests, build, Electron package, and the RLS
+query have passed; seven tables retain RLS with zero public grants. Update the
+deployment result in HANDOFF and JARVIS. Never print or commit credentials.
+
+Resume from `docs/STUDIO_PLAN.md`, `scripts/studio-worker.mjs`, and
+`src/app/api/clips/enrich/route.ts`. The worker's private environment file is
+under the app's Library/Application Support directory with mode 600. No
+credentials belong in the repository.
+
+## 2026-11-16 new owner direction: hosted creator workflow
+
+The owner now wants the girlfriend to upload and cut long videos from the
+Vercel site on a laptop or iPhone. Both Vercel and Electron need a real review
+queue: preview, Approve to keep and prepare captions/title, Deny to remove from
+the queue, and optional music upload. This supersedes the previous viewer-only
+product scope. Dean live monitoring was stopped by the owner; do not restart it.
+
+Architecture decision: keep the existing Vercel Blob store and Neon database.
+R2 is not required for the first version. Browser uploads go directly to Blob;
+Vercel records source and edit jobs; a separate FFmpeg worker processes them
+because Vercel functions cannot run the long edits. The Mac is the first worker,
+so it must be online for jobs to finish. The live watcher remains separate.
+Do not label captions or title suggestions as complete until their real
+transcript/render artifacts are checked.
+
 ## 2026-11-16 hosted viewer and manual mark update
 
 The live Mac watcher is still the only cutter. Vercel is a session-gated viewer

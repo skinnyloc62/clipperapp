@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth";
+import { getPrisma } from "@/lib/db";
 import PageHeader, { HelpPanel, SectionHead } from "@/components/PageHeader";
 import StatusStrip from "@/components/StatusStrip";
 import EmptyState from "@/components/EmptyState";
@@ -172,8 +174,32 @@ function ScopePanel({ readable, watching }: { readable: boolean; watching: boole
   );
 }
 
-export default function CommandCenterPage() {
-  if (process.env.VERCEL) redirect("/clips");
+export default async function CommandCenterPage() {
+  if (process.env.VERCEL) {
+    const user = await requireUser();
+    if (user instanceof Response) redirect("/login");
+    const db = getPrisma();
+    const [sources, queued, review, approved] = await Promise.all([
+      db.mediaAsset.count({ where: { userId: user.userId, mediaType: "video", status: { in: ["uploaded", "validated"] } } }),
+      db.renderJob.count({ where: { status: { in: ["queued", "running"] }, clipProject: { userId: user.userId } } }),
+      db.clipProject.count({ where: { userId: user.userId, status: "cut", assetId: { not: null } } }),
+      db.clipProject.count({ where: { userId: user.userId, status: "approved" } }),
+    ]);
+    const summary = [
+      { label: "Source videos", value: sources, href: "/editor" },
+      { label: "Processing", value: queued, href: "/editor" },
+      { label: "Needs review", value: review, href: "/approvals" },
+      { label: "Approved clips", value: approved, href: "/clips" },
+    ];
+    return <div><PageHeader kicker="Workspace" title="Command Center"
+      description="Your saved videos, edit jobs, review queue, and approved clips. Counts come from the shared database."
+      meta={<span className="chip">Cloud studio</span>} />
+      <div className="mt-7 grid gap-4 sm:grid-cols-2">{summary.map(item => <Link key={item.label} href={item.href} className="card p-5">
+        <p className="text-xs text-[var(--muted)]">{item.label}</p><p className="mt-2 text-3xl font-semibold">{item.value}</p>
+      </Link>)}</div>
+      <div className="card mt-6 p-5 text-sm text-[var(--muted)]">Upload and mark a clip in Editor. The Mac worker handles rendering when online; finished edits move to Approvals. Live Radar on this site is informational because stream recording runs only on the Mac.</div>
+    </div>;
+  }
   const data = readDashboard();
   const channels = listChannels();
   const snap = readMonitor();

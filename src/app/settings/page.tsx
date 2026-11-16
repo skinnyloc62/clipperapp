@@ -67,6 +67,16 @@ function Switch({ label, on }: { label: string; on: boolean }) {
 }
 
 export default function SettingsPage() {
+  if (process.env.VERCEL) return <div><PageHeader kicker="Workspace" title="Settings"
+    description="Storage and account status for the hosted studio. Live capture settings are on the Mac."
+    actions={<Link href="/login" className="btn">Account <Icon name="arrow" size={15} /></Link>} />
+    <div className="card mt-7 p-5 text-sm"><h2 className="font-semibold">Hosted media</h2>
+      <p className="mt-2 text-[var(--muted)]">Video uploads and finished edits use Vercel Blob. Clip records use Neon Postgres. The Mac worker processes edits when it is online.</p>
+      <dl className="mt-4 space-y-2"><div className="flex justify-between"><dt>Blob</dt><dd>{blobConfigured() ? "connected" : "not configured"}</dd></div>
+        <div className="flex justify-between"><dt>Database</dt><dd>{process.env.DATABASE_URL ? "connected" : "not configured"}</dd></div>
+        <div className="flex justify-between"><dt>Live monitoring</dt><dd>Mac only</dd></div></dl>
+      <p className="mt-4 text-xs text-[var(--muted)]">Blob media URLs are public to anyone holding a direct link. The studio pages and approval actions require a login.</p>
+    </div></div>;
   // Read the live environment instead of printing a fixed label. These are
   // booleans only — no secret, URL, or key ever reaches the markup.
   const localDisk = mediaOnLocalDisk();

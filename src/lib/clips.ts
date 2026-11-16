@@ -22,6 +22,10 @@ export interface ClipRecord {
   clipBlobUrl: string | null;
   stored: boolean;
   status: ClipStatus;
+  title?: string | null;
+  captionText?: string | null;
+  captionsApplied?: boolean;
+  musicApplied?: boolean;
   segmentsJson: string;
   createdAt: string;
   updatedAt: string;
