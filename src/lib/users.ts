@@ -83,7 +83,8 @@ export const devUsers = {
 export async function findUserByEmail(email: string): Promise<{ id: string; email: string; passwordHash: string | null } | null> {
   if (process.env.DATABASE_URL) {
     const { getPrisma } = await import("./db");
-    return getPrisma().user.findUnique({ where: { email } });
+    const user = await getPrisma().user.findUnique({ where: { email } });
+    return user?.email ? { id: user.id, email: user.email, passwordHash: user.passwordHash } : null;
   }
   if (process.env.VERCEL) return null;
   const u = devUsers.findByEmail(email);

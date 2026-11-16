@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import PageHeader, { HelpPanel, SectionHead } from "@/components/PageHeader";
 import StatusStrip from "@/components/StatusStrip";
 import EmptyState from "@/components/EmptyState";
@@ -172,6 +173,7 @@ function ScopePanel({ readable, watching }: { readable: boolean; watching: boole
 }
 
 export default function CommandCenterPage() {
+  if (process.env.VERCEL) redirect("/clips");
   const data = readDashboard();
   const channels = listChannels();
   const snap = readMonitor();

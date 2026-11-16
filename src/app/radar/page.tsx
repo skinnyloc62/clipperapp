@@ -2,6 +2,7 @@ import Link from "next/link";
 import PageHeader, { HelpPanel } from "@/components/PageHeader";
 import Icon from "@/components/Icon";
 import RadarBoard from "@/components/RadarBoard";
+import MarkLiveMoment from "@/components/MarkLiveMoment";
 import {
   clipCountsByChannel,
   listChannels,
@@ -69,6 +70,7 @@ export default function RadarPage() {
           worker,
         }}
       />
+      {!process.env.VERCEL && channels[0] ? <MarkLiveMoment channel={channels[0].slug} /> : null}
 
       <div className="mt-9 grid gap-5 lg:grid-cols-2 lg:items-start">
         <HelpPanel

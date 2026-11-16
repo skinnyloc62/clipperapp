@@ -10,7 +10,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if [ -f .env ]; then
+if [ -z "${DIRECT_URL:-}" ] && [ -f .env ]; then
   set -a
   # shellcheck disable=SC1091
   . ./.env

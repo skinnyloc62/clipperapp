@@ -44,10 +44,10 @@ function Brand() {
   );
 }
 
-function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+function NavList({ pathname, onNavigate, hosted }: { pathname: string; onNavigate?: () => void; hosted: boolean }) {
   return (
     <nav aria-label="Primary" className="flex flex-col gap-0.5">
-      {NAV.map((item) => {
+      {(hosted ? NAV.filter((item) => item.href === "/clips") : NAV).map((item) => {
         const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
         return (
           <Link
@@ -67,7 +67,7 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
   );
 }
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export default function AppShell({ children, hosted = false }: { children: React.ReactNode; hosted?: boolean }) {
   const pathname = usePathname() || "/";
   const [open, setOpen] = useState(false);
 
@@ -112,17 +112,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="mt-7 flex-1 overflow-y-auto">
           <p className="label mb-2 px-1">Workspace</p>
-          <NavList pathname={pathname} />
+          <NavList pathname={pathname} hosted={hosted} />
         </div>
 
         <div className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
           <div className="flex items-center gap-2">
             <span className="pulse-dot" aria-hidden="true" />
-            <span className="text-[12px] font-medium text-[var(--text)]">Running on this Mac</span>
+            <span className="text-[12px] font-medium text-[var(--text)]">{hosted ? "Published clip viewer" : "Running on this Mac"}</span>
           </div>
           <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--faint)]">
-            Uploads, cuts, renders, and downloads are real files in this app&rsquo;s data folder. Any
-            stage that is not wired says so on its own screen — nothing here is filled in to look busy.
+            {hosted ? "Approved videos are published from the owner's Mac. This site lets you watch and download them." :
+              "Uploads, cuts, renders, and downloads are real files in this app's data folder."}
           </p>
           <Link
             href="/login"
@@ -179,15 +179,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="mt-7 flex-1 overflow-y-auto">
               <p className="label mb-2 px-1">Workspace</p>
-              <NavList pathname={pathname} onNavigate={() => setOpen(false)} />
+              <NavList pathname={pathname} hosted={hosted} onNavigate={() => setOpen(false)} />
             </div>
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
               <div className="flex items-center gap-2">
                 <span className="pulse-dot" aria-hidden="true" />
-                <span className="text-[12px] font-medium">Running on this Mac</span>
+                <span className="text-[12px] font-medium">{hosted ? "Published clip viewer" : "Running on this Mac"}</span>
               </div>
               <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--faint)]">
-                Real files in this app&rsquo;s data folder. Unwired stages say so on their own screen.
+                {hosted ? "Watch approved videos published from the owner's Mac." : "Real files in this app's data folder."}
               </p>
             </div>
           </div>

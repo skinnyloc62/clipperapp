@@ -25,6 +25,7 @@ const ALLOWED_VIDEO_CODECS = new Set(["h264", "hevc", "vp9", "av1", "mpeg4"]);
  * (size-capped, timed out) and deleted after probing.
  */
 export async function POST(req: Request): Promise<Response> {
+  if (process.env.VERCEL) return Response.json({ error: "Validation runs on the owner's Mac" }, { status: 501 });
   const user = await requireUser();
   if (user instanceof Response) return user;
 

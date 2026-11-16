@@ -65,6 +65,15 @@ export function middleware(req: NextRequest): NextResponse {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // The hosted site is a viewer. Cutting, monitoring, and settings live in
+  // the Mac app; direct hosted page URLs must not imply they work on Vercel.
+  if (process.env.VERCEL && protectedPage && pathname !== "/" && !pathname.startsWith("/clips")) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/clips";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   return NextResponse.next();
 }
 

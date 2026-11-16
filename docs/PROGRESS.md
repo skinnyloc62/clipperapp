@@ -1,5 +1,41 @@
 # Progress — where this project actually stands
 
+## 2026-11-16 hosted viewer and manual mark update
+
+The live Mac watcher is still the only cutter. Vercel is a session-gated viewer
+for clips approved and published from the Mac.
+
+Verified locally and against provisioned cloud resources:
+
+- Neon database connected through Vercel; pooled and direct URLs set in
+  Production, Preview, Development. Schema push exit 0.
+- Blob store connected in all environments; Production storage driver is blob.
+- RLS script exit 0. Direct query: seven tables RLS on, zero policies, no public
+  SELECT grants. Neon has no Supabase anon role or public Data API.
+- Owner email login stored as a scrypt hash on the household user row. Shared
+  access code updated as a Vercel secret. The Electron app still bypasses login
+  only on loopback.
+- Publisher dry run exit 0; one approved real test clip uploaded to Blob and
+  inserted into Neon. Second run said ALREADY (no duplicate upload). Blob HEAD
+  confirmed both source and render files.
+- Manual live timestamp POST returned 201 and saved a 40.014-second vertical
+  render from the actual Dean buffer. Radar now accepts stream elapsed time or
+  Mac time. A 49-second song-preview draft with title and voice introduction is
+  in `~/Downloads/HGE Clips/test-edits/`; it is not published.
+- TypeScript exit 0, 29/29 tests passed, Next production build exit 0,
+  Electron package and install exit 0. The installed app was visually opened
+  directly to Radar with no login.
+- The Mac Clip Inbox now displays local renders before approval, with Approve
+  and Deny buttons. A real unapproved render returned `206 video/mp4` from the
+  owner preview route, while its download returned `404`; `/approvals`
+  redirected to the inbox with `307`.
+
+Still to verify after production deployment: both real login methods, the
+published clip on the hosted Clips page, an approved render download, and an
+unapproved 404. The site does not transcribe or score viral potential; the
+song-preview draft uses editorial screen text because local song ASR was
+unreliable. Blob media URLs are public if someone shares a URL.
+
 Last updated 2026-11-16. This file is the resumable state. If you are an agent
 picking this up cold, read this first, then `BUILD_STATUS.md`, then
 `JARVIS/.progress/journal.md`.
@@ -98,9 +134,8 @@ Also true:
   is the expensive part to get right.
 - The vertical render is a **center crop**. It does not follow a face or a
   subject that moves off-centre.
-- Production cannot run the pipeline. No `DATABASE_URL`, no Blob token, and no
-  `ffmpeg` in serverless. Production is the UI + demo data + the login gate.
-  Real clipping runs locally at `localhost:3000/editor`.
+- Production cannot run FFmpeg. It is a viewer backed by Neon and Blob; real
+  clipping runs in the local Mac app.
 
 ---
 
@@ -124,13 +159,10 @@ subject-tracking crop.
 
 ---
 
-## 4. Still blocked (needs the owner)
+## 4. Remaining external configuration
 
-- **Supabase provisioning.** No CLI installed, Docker present but not running,
-  no access token, and `https://mcp.supabase.com/mcp` returns
-  `401 No access token provided`. Needs a dashboard session, an MCP OAuth
-  handshake, or a scoped PAT.
-- **Blob token** for hosted uploads.
+- **Neon and Blob are provisioned.** The earlier Supabase provisioning block
+  was resolved by using the allowed Neon option.
 - **`MCP_API_TOKEN` / `MCP_USER_EVENT`** unset, so `/api/mcp` 401s locally.
   Pre-existing, not a regression.
 - Two `automation-bypass` secrets exist on the Vercel project with no CLI
@@ -307,9 +339,9 @@ kills; heartbeat stays under 20s, the ring settles near 240s of buffered video
 - Detection is **loudness**, not chat velocity or gameplay understanding. It
   will cut a loud ad, a hype moment, and a shouting argument alike. Chat-based
   detection needs a registered Kick OAuth app with `events:subscribe`.
-- The hosted Vercel build cannot run the pipeline: no `ffmpeg` in serverless,
-  no `DATABASE_URL`, no Blob token. Prod is the UI plus the access-code gate.
+- The hosted Vercel build cannot run FFmpeg; it displays approved clips from
+  Neon and Blob once the new source is deployed.
 - Kick's `/api/v2` is public but unversioned for our purposes; a field change
   would break polling until updated. `watch.log` records every non-200.
-- The watched stream is a third party's. Clips are local files for review; no
-  upload or publish step exists.
+- The watched stream is a third party's. Publishing requires an explicit owner
+  decision via the local publisher; a test clip was approved for verification.

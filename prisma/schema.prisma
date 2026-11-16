@@ -20,7 +20,7 @@ datasource db {
 
 model User {
   id           String   @id @default(cuid())
-  email        String   @unique
+  email        String?  @unique
   name         String?
   // scrypt hash (`saltHex:derivedHex`) for independent logins. NULL = login disabled.
   passwordHash String?
@@ -77,13 +77,15 @@ enum ClipStatus {
 
 model ClipProject {
   id        String     @id @default(cuid())
-  assetId   String
-  asset     MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  // Live clips have no complete source asset; their cut is the only saved media.
+  assetId   String?
+  asset     MediaAsset? @relation(fields: [assetId], references: [id], onDelete: Cascade)
   userId    String
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   startSec  Float
   endSec    Float
   clipUrl   String?
+  title     String?
   status    ClipStatus @default(pending)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt

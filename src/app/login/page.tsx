@@ -7,9 +7,9 @@ import Icon, { type IconName } from "@/components/Icon";
    /api/auth/login and redirects on success. Only the presentation is new. */
 
 const POINTS: { icon: IconName; copy: string }[] = [
-  { icon: "radar", copy: "Watch the channels you choose, not a discovery feed." },
-  { icon: "scissors", copy: "Every candidate arrives scored, with the reasons attached." },
-  { icon: "check", copy: "Nothing renders or exports without your approval." },
+  { icon: "scissors", copy: "Watch real clips published from the owner's Mac." },
+  { icon: "check", copy: "Only owner-approved clips appear here." },
+  { icon: "radar", copy: "Open them on a laptop or phone." },
 ];
 
 /** "code" = shared access code (no database needed). "account" = email + password. */
@@ -85,13 +85,12 @@ export default function LoginPage() {
           </div>
 
           <h1 className="hero-title-display text-[34px] leading-[1.04] text-[var(--text)] sm:text-[46px]">
-            Catch the moment.
+            Watch the moment.
             <br />
-            <span className="text-[var(--red-hi)]">Ship the clip.</span>
+            <span className="text-[var(--red-hi)]">Keep the clip.</span>
           </h1>
           <p className="mt-4 max-w-[46ch] text-[14px] leading-relaxed text-[var(--muted)]">
-            One pipeline for monitoring, cutting, approving, and exporting. Start at the Command Center
-            and work left to right.
+            Sign in to watch approved clips. Recording and editing happen in the Mac app.
           </p>
 
           <ul className="mt-7 space-y-3 border-t border-[var(--line)] pt-6">

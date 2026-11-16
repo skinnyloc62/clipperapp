@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased" suppressHydrationWarning>
         <SpaceBackdrop />
         <div className="relative z-10">
-          <AppShell>{children}</AppShell>
+          <AppShell hosted={Boolean(process.env.VERCEL)}>{children}</AppShell>
         </div>
       </body>
     </html>

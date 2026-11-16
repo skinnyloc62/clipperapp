@@ -105,6 +105,9 @@ export default function PipelinePanel({
   const [probe, setProbe] = useState<Probe | null>(null);
   const [cut, setCut] = useState<Cut | null>(null);
   const [render, setRender] = useState<Render | null>(null);
+  const [approved, setApproved] = useState(false);
+  const [approvalBusy, setApprovalBusy] = useState(false);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
   const [startSec, setStartSec] = useState("0");
   const [endSec, setEndSec] = useState("");
   const [status, setStatus] = useState<Record<StepKey, StepStatus>>({
@@ -143,6 +146,8 @@ export default function PipelinePanel({
     setProbe(null);
     setCut(null);
     setRender(null);
+    setApproved(false);
+    setApprovalError(null);
     setStatus({ upload: "idle", validate: "idle", cut: "idle", render: "idle" });
     setError(null);
     setStartSec("0");
@@ -157,6 +162,8 @@ export default function PipelinePanel({
     setProbe(null);
     setCut(null);
     setRender(null);
+    setApproved(false);
+    setApprovalError(null);
     setStatus({ upload: "idle", validate: "idle", cut: "idle", render: "idle" });
     setError(null);
     setStartSec("0");
@@ -474,16 +481,26 @@ export default function PipelinePanel({
             ) : (
               <>
                 <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--muted)]">
-                  The vertical render passed its machine checks. The file is stored on the server — this link streams it
-                  back to you.
+                  The vertical render passed its machine checks. Approve this clip to unlock its download.
                 </p>
-                <a
-                  href={render ? `/api/downloads/${render.renderId}` : "#"}
-                  className="btn btn-primary mt-3.5 w-full"
-                  download
-                >
+                {approved ? <a href={render ? `/api/downloads/${render.renderId}` : "#"}
+                  className="btn btn-primary mt-3.5 w-full" download>
                   <Icon name="external" size={14} /> Download render
-                </a>
+                </a> : <button type="button" className="btn btn-primary mt-3.5 w-full"
+                  disabled={!cut || approvalBusy}
+                  onClick={async () => {
+                    if (!cut) return;
+                    setApprovalBusy(true);
+                    setApprovalError(null);
+                    try {
+                      await postJson("/api/approvals", { clipId: cut.clipId, decision: "approved" });
+                      setApproved(true);
+                    } catch (e) { setApprovalError((e as Error).message); }
+                    finally { setApprovalBusy(false); }
+                  }}>
+                  {approvalBusy ? "Approving…" : "Approve this clip"}
+                </button>}
+                {approvalError ? <p className="mt-2 text-xs text-[var(--amber)]">{approvalError}</p> : null}
               </>
             )}
           </section>
@@ -619,7 +636,7 @@ export default function PipelinePanel({
             },
             {
               label: "Download",
-              body: "The render is downloadable without an approval step. Clip previews are gated — an unapproved clip intentionally answers 404 rather than confirming it exists.",
+              body: "Approve the clip before downloading its render. An unapproved clip or render answers 404.",
             },
           ]}
         />

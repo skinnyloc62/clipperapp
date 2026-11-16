@@ -19,6 +19,7 @@ import { mediaUsesPrisma } from "@/lib/storage-mode";
  * the trimmed file and stores its URL. No client paths anywhere.
  */
 export async function POST(req: Request): Promise<Response> {
+  if (process.env.VERCEL) return Response.json({ error: "Clipping runs on the owner's Mac" }, { status: 501 });
   const user = await requireUser();
   if (user instanceof Response) return user;
 

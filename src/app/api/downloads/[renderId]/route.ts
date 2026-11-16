@@ -31,9 +31,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ renderId: stri
       const { getPrisma } = await import("@/lib/db");
       const job = await getPrisma().renderJob.findFirst({
         where: { id },
-        include: { clipProject: { select: { userId: true } } },
+        include: { clipProject: { select: { userId: true, status: true } } },
       });
-      if (!job || job.clipProject.userId !== user.userId) {
+      if (!job || job.clipProject.userId !== user.userId || job.clipProject.status !== "approved") {
         return Response.json({ error: "unknown download" }, { status: 404 });
       }
       blobUrl = job.renderUrl;
@@ -44,7 +44,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ renderId: stri
         return Response.json({ error: "storage not configured", code: "blob_not_configured" }, { status: 503 });
       }
       const rec = devRenders.get(id, user.userId);
-      if (!rec) return Response.json({ error: "unknown download" }, { status: 404 });
+      if (!rec || devClips.get(rec.clipId, user.userId)?.status !== "approved") {
+        return Response.json({ error: "unknown download" }, { status: 404 });
+      }
       localPath = rec.localPath;
       blobUrl = rec.renderBlobUrl;
       allowed = !!rec.stored;

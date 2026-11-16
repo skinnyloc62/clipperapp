@@ -20,8 +20,8 @@
 -- application code (`requireUser` + `userId`-scoped queries). This closes the
 -- Supabase Data API door; it does not replace per-user authorization.
 --
--- Idempotent: safe to re-run. No-op on plain Postgres where the Supabase API
--- roles do not exist (local dev, CI), so it can live in the repo unconditionally.
+-- Idempotent on Supabase, Neon, and local Postgres. RLS is enabled everywhere;
+-- revocations run only where the Supabase API roles exist.
 --
 -- Apply with: npm run db:rls     (uses DIRECT_URL, port 5432 — DDL needs the
 --                                 direct connection, not the transaction pooler)
@@ -37,14 +37,6 @@ DECLARE
   applied int := 0;
   missing int := 0;
 BEGIN
-  -- Guard: only Supabase projects have these roles. Local Postgres does not,
-  -- so this script must quietly do nothing there rather than error out.
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon')
-     AND NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
-    RAISE NOTICE 'RLS lockdown skipped: no anon/authenticated roles (not a Supabase database).';
-    RETURN;
-  END IF;
-
   FOREACH tbl IN ARRAY tables LOOP
     IF NOT EXISTS (
       SELECT 1

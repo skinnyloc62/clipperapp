@@ -1,7 +1,48 @@
 # Handoff — Street Ethics Clip Engine / HGE Clippers
 
-Written 2026-11-16 01:12 EST (06:12 UTC). Last commit `e4ed3bb`, pushed to
-`skinnyloc62/clipperapp` (main). Working tree is clean.
+Original handoff written 2026-11-16 01:12 EST. The verified hosted-viewer
+update below supersedes older "no database / no Blob / no publish path" notes.
+
+## Hosted viewer update — 2026-11-16
+
+- The active source repository is `/Users/homegrownentllc/clip-mvp`. The
+  Desktop icon links to `/Applications/Street Ethics Clip Engine.app`.
+- Vercel Blob store `hge-clippers-media` was created and connected to
+  Production, Preview, and Development. `STORAGE_DRIVER=blob` is Production
+  only. The store is public, so a Blob URL can be opened by anyone holding it;
+  the dashboard and download route still require a session.
+- Neon Postgres `hge-clippers-db` was provisioned through Vercel. Its pooled
+  `DATABASE_URL` and direct `DIRECT_URL` are set in all three environments.
+  Neon uses a pooler hostname rather than Supabase's port 6543 convention.
+- `prisma db push` succeeded. `npm run db:rls` succeeded. A direct query
+  found all seven tables with RLS enabled, zero policies, and no public SELECT.
+  Neon has no Supabase `anon` role or PostgREST Data API.
+- The owner account was created on the `household` user row with a scrypt
+  password hash. The shared access code was updated as a Vercel secret in all
+  environments. Neither credential is stored in this repository.
+- `scripts/publish-clips.mjs --dry-run` reports eligible local records;
+  `--approve clip_<id> --title <title>` is an explicit owner approval and
+  publishes the real source cut and vertical render. It refuses missing files.
+  Re-running the same approved ID reports `ALREADY` and does not upload again.
+- One real Dean clip was published with the title
+  `TEST CLIP - not a viral pick`. Blob HEAD verified the 26,086,952-byte cut
+  and 14,565,406-byte render. The source footage is not being called viral.
+- The hosted Clips page now lists approved database rows; the render download
+  route also checks approval. Hosted navigation is viewer-only, and hosted
+  cut/render/validate endpoints return 501. The Mac app keeps local auth bypass.
+- The Mac Clip Inbox plays local vertical renders before approval. Each card
+  has Approve or Deny; `/approvals` opens that real inbox. Local review playback
+  uses `/api/previews/<renderId>` with session ownership and byte-range support.
+  `/api/downloads/<renderId>` still returns 404 until the clip is approved.
+- The Radar page in the rebuilt Mac app has a manual timestamp control. It
+  accepts stream elapsed time (for example `4:04:23`), Mac time, or Mark now.
+  A real local request returned 201 with a 40.014-second vertical render.
+  The buffer lasts about four minutes, so old marks expire.
+- The rebuilt Electron app was installed at `/Applications/Street Ethics Clip
+  Engine.app` and visually opened to Live Radar without a login screen.
+- Local checks: `npx tsc --noEmit` exit 0, `npm test` 29/29, `npm run build`
+  exit 0, packaged Mac build exit 0. See `docs/PROGRESS.md` for deployment
+  verification and remaining limits.
 
 ## What this is
 
@@ -35,7 +76,7 @@ cd ~/clip-mvp && node scripts/export-clips.mjs /some/dir # → somewhere else
 |---|---|---|
 | `scripts/watch-supervisor.mjs` | 80771 | PPID 1, detached, respawns the watcher on crash with 5s→60s backoff |
 | `scripts/watch.mjs` | 85092 | the watcher itself; child of 80771 |
-| Electron app | not running | `/Applications/Street Ethics Clip Engine.app`, CDP port 9222, HTTP port changes per launch |
+| Electron app | installed and launchable | `/Applications/Street Ethics Clip Engine.app`; HTTP port changes per launch |
 | Local Postgres | 127.0.0.1:5432 | db `clipmvp`, used for the app's own auth/registry tables |
 
 Stop the watcher (only this — the supervisor will not resurrect it if you kill
@@ -103,8 +144,10 @@ Proven:
 tuning alone. The honest statement is: the old rule was measurably too loose on
 replayed audio, the new one is measurably tighter, and time will tell.
 
-Also not proven, because it does not exist: no burned-in captions, no brand
-overlay, no loudness mastering. The QA record marks those three `NOT_TESTED`.
+The automatic watcher renders do not have burned-in captions, brand overlay,
+or loudness mastering. The QA record marks those three `NOT_TESTED`. A separate
+49-second song-preview draft has editorial title text and a voice introduction;
+its lyrics were not captioned because the local transcription was unreliable.
 
 ## Known dead ends / blocked
 
@@ -113,11 +156,10 @@ overlay, no loudness mastering. The QA record marks those three `NOT_TESTED`.
   chat-velocity detection. That needs a registered Kick OAuth app with
   `events:subscribe` and a public key, then `chat.message.sent` webhooks.
   Nobody has supplied those credentials.
-- **Production (Vercel) cannot run the pipeline.** No `ffmpeg` in a serverless
-  function. Prod is the UI plus the access-code gate only.
-- **Postgres provisioning** needs two connection strings: pooled `6543` with
-  `?pgbouncer=true` → `DATABASE_URL`, direct `5432` → `DIRECT_URL`. Pooler user
-  is `postgres.liijagrcphwqczaatuno`.
+- **Production (Vercel) cannot cut or render.** No `ffmpeg` in a serverless
+  function. It serves approved clips published from the Mac.
+- **Database is Neon.** The Supabase 6543/`pgbouncer=true` convention in the
+  earlier plan does not apply. Neon supplied a pooler hostname and a direct URL.
 - `/api/mcp` returns 401 locally because `MCP_API_TOKEN` / `MCP_USER_EVENT` are
   unset. Pre-existing, not a regression.
 - Two `automation-bypass` secrets on the Vercel project cannot be deleted with
@@ -153,12 +195,10 @@ Rebuild and reinstall the Mac app:
 
 ```bash
 cd ~/clip-mvp
-bash scripts/build-app.sh     # then copy the .app to /Applications
-killall Finder                # so the icon and Launchpad entry refresh
+bash scripts/build-mac-app.sh # builds, installs, and refreshes Desktop shortcut
 ```
 
-The installed app currently renders **old** radar copy, because the copy edits
-shipped after the last build. Rebuilding fixes that; it is cosmetic only.
+The installed app was rebuilt after the manual mark and inbox review changes.
 
 Data lives in `~/Library/Application Support/Street Ethics Clip Engine/data`:
 

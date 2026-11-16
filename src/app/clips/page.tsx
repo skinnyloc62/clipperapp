@@ -1,83 +1,76 @@
-import Link from "next/link";
-import PageHeader, { HelpPanel, SectionHead } from "@/components/PageHeader";
-import EmptyState from "@/components/EmptyState";
-import Icon from "@/components/Icon";
+import { redirect } from "next/navigation";
+import PageHeader from "@/components/PageHeader";
+import ClipDecision from "@/components/ClipDecision";
+import { authBypassActive, getSession } from "@/lib/auth";
+import { devClips, devRenders } from "@/lib/clips";
+import { mediaUsesPrisma } from "@/lib/storage-mode";
 
-/* Stage 02 — Detect. The detector is not connected in this build, so there is
-   no candidate list to render. The screen states that plainly and shows the
-   intended scoring inputs instead of inventing moments that never happened. */
-
-export default function ClipsPage() {
-  return (
-    <div>
-      <PageHeader
-        kicker="Stage 02 · Detect"
-        title="Clip Inbox"
-        description="Moments the detector ranked as worth cutting. Highest score first — you decide what moves to the editor."
-        actions={
-          <Link href="/editor" className="btn btn-primary">
-            Open editor <Icon name="arrow" size={15} />
-          </Link>
-        }
-        meta={
-          <>
-            <span className="chip">0 candidates</span>
-            <span className="chip chip-warn">detector not connected</span>
-          </>
-        }
-      />
-
-      <div className="mt-7 space-y-6">
-        <section aria-labelledby="queue-heading">
-          <SectionHead
-            id="queue-heading"
-            title="Queue"
-            count={0}
-            hint="Cards keep the detector's reasons attached so a score is never just a number."
-          />
-          <EmptyState
-            icon="scissors"
-            title="No clip candidates"
-            body="Nothing has been detected because the monitor and detector are not connected in this build. Candidates appear here once a chat spike or keyword burst fires on a channel you are watching — each one arrives with its rank and the reasons behind it."
-            action={
-              <Link href="/radar" className="btn">
-                <Icon name="radar" size={15} /> See the radar
-              </Link>
-            }
-            note="Empty because detection is off — not a loading state"
-          />
-        </section>
-
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start">
-          <HelpPanel
-            title="What a card will show"
-            items={[
-              { label: "Rank", body: "An engagement-potential ordering, not a probability and not a promise. Two cards can both be 80 and behave differently." },
-              { label: "Reasons", body: "The raw signals behind the rank. If a reason looks weak, the card is weak — trust the list over the number." },
-              { label: "Media state", body: "Needs media means the moment was detected but no source file exists yet, so the editor stays locked." },
-            ]}
-          />
-          <section className="card p-5" aria-label="Detector settings summary">
-            <h2 className="text-[13.5px] font-semibold text-[var(--text)]">Signals that will feed this queue</h2>
-            <ul className="mt-3 divide-y divide-[var(--line)]">
-              {[
-                { k: "Chat velocity", v: "x3 over rolling 5-min baseline" },
-                { k: "Keyword burst", v: "CLIP THAT · INSANE · NO WAY" },
-                { k: "Cooldown", v: "90s between candidates per channel" },
-              ].map((row) => (
-                <li key={row.k} className="flex items-baseline justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
-                  <span className="text-[12.5px] text-[var(--muted)]">{row.k}</span>
-                  <span className="num shrink-0 text-right text-[11.5px] text-[var(--faint)]">{row.v}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 border-t border-[var(--line)] pt-3 text-[11px] leading-relaxed text-[var(--faint)]">
-              These are the intended defaults, listed so you can see the shape of the detector. None of them
-              are running in this build.
-            </p>
-          </section>
+export const dynamic = "force-dynamic";
+type Row = { id: string; status: string; date: Date; channel: string; trigger: string; title: string | null; renderId: string | null };
+function source(json: string | null): { channel?: string; trigger?: string } {
+  try {
+    const parsed = JSON.parse(json || "[]");
+    return (Array.isArray(parsed) ? parsed[0] : parsed) || {};
+  } catch { return {}; }
+}
+async function rows(): Promise<Row[]> {
+  if (mediaUsesPrisma()) {
+    const { getPrisma } = await import("@/lib/db");
+    const clips = await getPrisma().clipProject.findMany({
+      where: { userId: "household", status: "approved" },
+      include: { renderJobs: true, transcripts: true }, orderBy: { createdAt: "desc" },
+    });
+    return clips.map((clip) => {
+      const p = source(clip.transcripts.find((t) => t.source === "kick-live")?.segmentsJson ?? null);
+      return { id: clip.id, status: clip.status, date: clip.createdAt, title: clip.title,
+        channel: p.channel || "source video", trigger: p.trigger || "owner selected",
+        renderId: clip.renderJobs.find((r) => r.status === "done" && r.renderUrl)?.id ?? null };
+    });
+  }
+  if (process.env.VERCEL) return [];
+  const renders = devRenders.list("household");
+  return devClips.list("household").map((clip) => {
+    const p = source(clip.segmentsJson);
+    return { id: clip.clipId, status: clip.status, date: new Date(clip.createdAt), title: null,
+      channel: p.channel || "source video", trigger: p.trigger || "owner selected",
+      renderId: renders.find((r) => r.clipId === clip.clipId && r.status === "done")?.renderId ?? null };
+  });
+}
+export default async function ClipsPage() {
+  if (!authBypassActive() && !(await getSession()).userId) redirect("/login");
+  const clips = await rows();
+  const hosted = Boolean(process.env.VERCEL);
+  return <div>
+    <PageHeader kicker={hosted ? "Published clips" : "Local clip inbox"}
+      title={hosted ? "Clips to watch" : "Clip Inbox"}
+      description={hosted ? "Videos approved and published from the Mac." : "Real cuts saved by the local watcher."}
+      meta={<span className="chip">{clips.length} {hosted ? "published" : "local"} clips</span>} />
+    {clips.length === 0 ? <div className="card mt-7 p-6">
+      <h2 className="text-lg font-semibold">{hosted ? "No published clips yet" : "No local clips yet"}</h2>
+      <p className="mt-2 text-sm text-[var(--muted)]">{hosted ? "Clips appear after the owner reviews and publishes a local cut." : "Live cuts and manual timestamp clips appear here when saved on this Mac."}</p>
+    </div> : <div className="mt-7 grid gap-5 md:grid-cols-2">{clips.map((clip) =>
+      <article className="card overflow-hidden p-4" key={clip.id}>
+        {clip.renderId
+          ? <video className="mx-auto max-h-[520px] w-full rounded-lg bg-black" controls preload="metadata"
+              playsInline src={hosted ? `/api/downloads/${clip.renderId}` : `/api/previews/${clip.renderId}`} />
+          : <div className="rounded-lg bg-black/40 p-8 text-center text-sm text-[var(--muted)]">
+              Render unavailable
+            </div>}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <div><h2 className="font-semibold">{clip.title || clip.channel}</h2>
+            <p className="text-xs text-[var(--muted)]">
+              {clip.date.toLocaleString("en-US")} · {clip.trigger} · {clip.status}
+            </p></div>
+          <div className="flex flex-wrap items-center gap-2">
+            {!hosted && <ClipDecision clipId={clip.id} status={clip.status} />}
+            {clip.renderId && clip.status === "approved"
+              ? <a className="btn" href={`/api/downloads/${clip.renderId}`}>Download</a> : null}
+          </div>
         </div>
-      </div>
-    </div>
-  );
+      </article>)}</div>}
+    <p className="mt-6 text-xs text-[var(--muted)]">
+      What is real on this screen: every listed clip comes from a saved local cut or a published database row.
+      There are no sample clips or predicted viral scores.
+    </p>
+  </div>;
 }
