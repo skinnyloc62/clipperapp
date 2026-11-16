@@ -11,3 +11,6 @@ renders/
 !fixtures/sample-30s.mp4
 .vercel
 *.tsbuildinfo
+
+# local dev server output
+dev.log

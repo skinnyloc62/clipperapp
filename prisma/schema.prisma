@@ -9,7 +9,13 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Pooled connection (Supabase port 6543 / transaction mode) — used by the app at runtime.
+  url = env("DATABASE_URL")
+  // Direct connection (Supabase port 5432 / session mode) — used by migrations and
+  // any DDL. A transaction-mode pooler cannot run DDL, so this must point at the
+  // direct port. Required whenever DATABASE_URL is set: Prisma does NOT fall back
+  // to DATABASE_URL if this is missing.
+  directUrl = env("DIRECT_URL")
 }
 
 model User {

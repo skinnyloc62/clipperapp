@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import Icon, { type IconName } from "@/components/Icon";
 
@@ -13,25 +12,37 @@ const POINTS: { icon: IconName; copy: string }[] = [
   { icon: "check", copy: "Nothing renders or exports without your approval." },
 ];
 
+/** "code" = shared access code (no database needed). "account" = email + password. */
+type Mode = "code" | "account";
+
 export default function LoginPage() {
+  const [mode, setMode] = useState<Mode>("code");
+  const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  function switchMode(next: Mode): void {
+    setMode(next);
+    setError(null);
+  }
 
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
+      const payload = mode === "code" ? { code } : { email, password };
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(payload),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: unknown };
       if (!res.ok) {
-        setError(data.error || "login failed");
+        const raw = data.error;
+        setError(typeof raw === "string" ? raw : "login failed");
         return;
       }
       window.location.href = "/";
@@ -100,40 +111,73 @@ export default function LoginPage() {
           <div className="panel-3d p-6 sm:p-7">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-[16px] font-semibold text-[var(--text)]">Welcome back</h2>
-                <p className="mt-1 text-[12.5px] text-[var(--muted)]">Use your workspace account.</p>
+                <h2 className="text-[16px] font-semibold text-[var(--text)]">
+                  {mode === "code" ? "Enter access code" : "Welcome back"}
+                </h2>
+                <p className="mt-1 text-[12.5px] text-[var(--muted)]">
+                  {mode === "code"
+                    ? "One code, this household only."
+                    : "Use your workspace account."}
+                </p>
               </div>
               <span className="chip chip-demo">demo build</span>
             </div>
 
             <form onSubmit={submit} className="mt-6 space-y-4">
-              <label className="block">
-                <span className="label mb-1.5 block">Email</span>
-                <input
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  aria-invalid={error ? true : undefined}
-                  className="field"
-                  placeholder="you@studio.com"
-                />
-              </label>
+              {mode === "code" ? (
+                <label className="block">
+                  <span className="label mb-1.5 block">Access code</span>
+                  <input
+                    type="password"
+                    required
+                    autoFocus
+                    autoComplete="current-password"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    aria-invalid={error ? true : undefined}
+                    className="field"
+                    placeholder="word-word-word-000"
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                  />
+                  <span className="mt-1.5 block text-[11px] leading-relaxed text-[var(--faint)]">
+                    Case-sensitive. Paste it exactly — it is stored in{" "}
+                    <code className="text-[var(--muted)]">~/.clip-mvp-access-code.txt</code> on the Mac
+                    that set it up.
+                  </span>
+                </label>
+              ) : (
+                <>
+                  <label className="block">
+                    <span className="label mb-1.5 block">Email</span>
+                    <input
+                      type="email"
+                      required
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      aria-invalid={error ? true : undefined}
+                      className="field"
+                      placeholder="you@studio.com"
+                    />
+                  </label>
 
-              <label className="block">
-                <span className="label mb-1.5 block">Password</span>
-                <input
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  aria-invalid={error ? true : undefined}
-                  className="field"
-                  placeholder="••••••••"
-                />
-              </label>
+                  <label className="block">
+                    <span className="label mb-1.5 block">Password</span>
+                    <input
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      aria-invalid={error ? true : undefined}
+                      className="field"
+                      placeholder="••••••••"
+                    />
+                  </label>
+                </>
+              )}
 
               {error ? (
                 <div
@@ -146,22 +190,30 @@ export default function LoginPage() {
               ) : null}
 
               <button type="submit" disabled={busy} className="btn btn-primary w-full">
-                {busy ? "Signing in…" : "Sign in"}
+                {busy ? "Checking…" : mode === "code" ? "Unlock" : "Sign in"}
                 {busy ? null : <Icon name="arrow" size={15} />}
               </button>
             </form>
 
+            <button
+              type="button"
+              onClick={() => switchMode(mode === "code" ? "account" : "code")}
+              className="mt-4 w-full text-center text-[11.5px] text-[var(--muted)] underline decoration-[var(--line-2)] underline-offset-4 transition-colors hover:text-[var(--text)]"
+            >
+              {mode === "code" ? "Use email + password instead" : "Use the access code instead"}
+            </button>
+
             <div className="mt-5 border-t border-[var(--line)] pt-4">
-              <Link href="/" className="btn btn-quiet w-full !h-9 !text-[12.5px]">
-                Back to Command Center
-              </Link>
+              <p className="text-[11px] leading-relaxed text-[var(--faint)]">
+                The gate covers every page and every API route. Sessions last 7 days, then ask for the
+                code again.
+              </p>
             </div>
           </div>
 
           <p className="mt-4 px-1 text-[11px] leading-relaxed text-[var(--faint)]">
-            Sessions are stored server-side. If sign-in fails with a connection error, the database is
-            not reachable — that is an environment issue, not a wrong password. There are no working
-            credentials in this build.
+            Data in this build is demo data, not your library. The pipeline stages are real routes; the
+            catalogue behind them is placeholder until a hosted database is connected.
           </p>
         </section>
       </div>
