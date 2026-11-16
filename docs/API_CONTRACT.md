@@ -42,15 +42,20 @@ is `stub:true` replaced by explicit `stored` + `status` fields.
 
 ## Database / security posture (actual provider)
 
-- Provider: Prisma ORM + Postgres (`DATABASE_URL`). Target provisioning is Neon
-  via Marketplace. Supabase is NOT configured (no deps, no URL, no client) and
-  was NOT introduced; the Supabase skills were used as generic Postgres/server
-  hardening guidance only.
-- RLS: Prisma connects with a direct role that bypasses RLS, so RLS is NOT a
-  security boundary here. Ownership is enforced server-side (`requireUser` +
-  `userId`-scoped queries); every route returns 404 — never 403 — for foreign
-  records. RLS must not be claimed as protection without a test proving the
-  connection role is restricted.
+- Provider: Prisma ORM over Postgres (`DATABASE_URL` pooled, `DIRECT_URL` direct).
+  Target is **Supabase managed Postgres** (dashboard or Vercel Marketplace), used
+  as a plain database. **Neon is not used.** No `@supabase/*` package, no
+  `supabase-js`, no Data API / PostgREST calls: the only client is Prisma.
+- RLS: `prisma/rls-lockdown.sql` (`npm run db:rls`) enables row level security on
+  all 7 tables with **zero policies** and revokes `anon` / `authenticated`. That
+  closes Supabase's auto-exposed Data API, which nothing in this app uses.
+  It is **not** an app-user boundary: the table owner role (Prisma's connection)
+  bypasses RLS because `FORCE ROW LEVEL SECURITY` is deliberately not set, so
+  per-user ownership still rests entirely on server-side code (`requireUser` +
+  `userId`-scoped queries), and every route returns 404 — never 403 — for a
+  foreign record. Proven locally 2026-11-16 with a throwaway non-owner role that
+  held a SELECT grant: it read 2 rows before the script and 0 rows after, while
+  the owner kept reading 2. Do not restate this as "RLS protects user data."
 
 ## Section 3 pipeline (implemented, code-complete)
 

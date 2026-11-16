@@ -5,6 +5,15 @@ stub vertical render -> approve -> download, one 30s MP4, no manual DB edits.
 
 Repo: `/Users/homegrownentllc/clip-mvp/` (fresh `git init`, greenfield).
 
+> **Current state, 2026-11-16 — read [`docs/PROGRESS.md`](docs/PROGRESS.md) first.**
+> Access-code login is live at <https://clip-mvp.vercel.app> (`d614ff1`), and the
+> full pipeline has been proven end-to-end against a **real live Kick stream**:
+> upload → validate → cut → vertical render (QA PASS) → download, producing a
+> 1080×1920 h264/aac artifact verified non-black with the streamer's watermark
+> visible. There is **no AI in this codebase** — cutting and reframing are ffmpeg,
+> and highlight selection is still `stubCandidates()`. See PROGRESS.md §3 for
+> what models would actually be needed and why Claude/ChatGPT are not required.
+
 ## Toolchain (verified 2026-11-16)
 
 | Tool | Version | Status |

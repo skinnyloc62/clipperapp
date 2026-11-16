@@ -1,4 +1,4 @@
-# Vercel setup — Neon Postgres + private Blob storage
+# Vercel setup — Supabase Postgres + private Blob storage
 
 Do everything below from your own terminal and the Vercel dashboard.
 Never paste tokens or passwords into chat, issues, or the repo.
@@ -33,6 +33,28 @@ npx dotenv -e .env.local -- npx prisma db push
 HUSBAND_PASSWORD='<strong unique>' WIFE_PASSWORD='<strong unique>' \
   npx dotenv -e .env.local -- node prisma/seed.mjs
 ```
+
+**Both URLs are mandatory, and they are not interchangeable.** `prisma/schema.prisma`
+declares `url = env("DATABASE_URL")` and `directUrl = env("DIRECT_URL")`.
+Prisma does **not** fall back to `DATABASE_URL` when `directUrl` is missing — it
+fails with `P1012` (verified). So:
+- `DATABASE_URL` → pooled, port **6543**, `?pgbouncer=true` — the app at runtime.
+- `DIRECT_URL` → direct, port **5432** — `db push`, `db:rls`, anything DDL.
+
+`prisma generate` (the `postinstall` step on Vercel) works with neither variable
+set, so adding `directUrl` does not break the build.
+
+Lock the database down for the public API roles — Supabase exposes `public` over
+PostgREST to anyone holding the anon key, and this app never uses that path:
+
+```bash
+npx dotenv -e .env.local -- bash scripts/apply-rls.sh   # or: npm run db:rls
+```
+
+Expect `Script executed successfully`. It enables RLS on all 7 tables with zero
+policies and revokes `anon` / `authenticated`. It is idempotent and a deliberate
+no-op on plain Postgres. Re-check with the query at the bottom of
+`prisma/rls-lockdown.sql`: 7 rows with `rls_enabled = true`, `policies = 0`.
 
 Rules: production passwords are set as shell env vars at seed time, never
 written to files, never committed, never reused from dev. Dev passwords
@@ -75,10 +97,11 @@ localhost: login → small upload (201 `stored:true`) → 5.9MB upload
 
 ## 5. Region + cost notes
 
-- Create the Neon database and Blob store in the region closest to your
+- Create the Supabase project and Blob store in the region closest to your
   Vercel project region (dashboard → project → Settings) to cut latency.
-- Prisma uses a direct pooled connection; fine for 2 users. If you later add
-  creators, add Prisma Accelerate or the Neon serverless driver before opening
-  signups.
+- Runtime traffic goes through the pooler (6543); only DDL uses the direct port.
+  That is fine for 2 users. If you later add creators, add Prisma Accelerate or
+  a serverless driver before opening signups — a transaction pooler plus Prisma
+  is a known ceiling, not an infinite one.
 - Blob egress bills on delivery: keep previews server-mediated and capped at
   60s clips per the app limits.
