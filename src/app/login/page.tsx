@@ -120,7 +120,7 @@ export default function LoginPage() {
                     : "Use your workspace account."}
                 </p>
               </div>
-              <span className="chip chip-demo">demo build</span>
+              <span className="chip">shared workspace</span>
             </div>
 
             <form onSubmit={submit} className="mt-6 space-y-4">
@@ -212,8 +212,8 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-4 px-1 text-[11px] leading-relaxed text-[var(--faint)]">
-            Data in this build is demo data, not your library. The pipeline stages are real routes; the
-            catalogue behind them is placeholder until a hosted database is connected.
+            Nothing on the other side of this gate is fabricated. Uploads, cuts, and renders are real
+            records in this workspace; any stage that is not wired says so on its own screen.
           </p>
         </section>
       </div>

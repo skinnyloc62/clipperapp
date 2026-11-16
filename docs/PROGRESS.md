@@ -216,3 +216,100 @@ does not. Server-side scoping does.
 `tests/smoke.test.mjs:49` — "dashboard shell has all four placeholders"
 (28/29 pass). Deliberate: the shell was replaced by real components. Do not
 change code to make it green; change the test when the dashboard is final.
+
+---
+
+## 7. Local Mac app + live watcher (verified 2026-11-16)
+
+### Shipped and verified
+- **Packaged Mac app** at `/Applications/Street Ethics Clip Engine.app`
+  (`com.streetethics.clipengine`, v0.1.0, HGE gold-shield `icon.icns`), built by
+  `npm run app:mac` → `scripts/build-mac-app.sh`. The script stages a
+  dependency-free copy in `electron-build/app`, excludes `.env*` and `.data`,
+  installs to `/Applications`, and points the Desktop item at it with a symlink
+  instead of a second 336 MB bundle.
+- **No access code locally.** `electron/main.js` sets `LOCAL_AUTH_BYPASS=1` and
+  `authBypassActive()` only honours it when the host is loopback and the process
+  is not on Vercel. The Vercel build keeps the `APP_PASSWORD` gate.
+- **Demo data removed.** `src/mocks/demo.ts` and both demo cards are deleted;
+  `/` counts real rows from `assets.json`, `clips.json`, `renders.json` through
+  `src/lib/dashboard.ts`, and every screen with no registry says so instead of
+  printing zeros that look like a healthy pipeline. `grep` for
+  `mocks/demo|DEMO_|demo data` across `src` and `tests` is clean.
+- `npm test` 29/29, `npx tsc --noEmit` clean, `rm -rf .next && npm run build`
+  succeeds, `npm run app:mac` exits 0 and reinstalls.
+- **Three real clips cut and rendered from `https://kick.com/deenthegreat`**
+  (24/7 IRL stream) while it was live at ~16.5k viewers:
+  | clip | length | file | trigger | render |
+  |---|---|---|---|---|
+  | `clip_d988e1d2…` | 44s | 26.1 MB | audio-spike | `render_666ac459…` done, QA PASS (4/4) |
+  | `clip_61c9f860…` | 44s | 18.4 MB | audio-spike | `render_9a83e50c…` done, QA PASS (4/4) |
+  | `clip_6020ec98…` | 42s | 16.0 MB | fallback-loudest | `render_…` done, QA PASS |
+  All three carry `assetId: live_deenthegreat`, land in the same
+  `clips.json` / `renders.json` the inbox reads, and the third one proves the
+  180s fallback path: no +8 dB spike arrived, so it cut the loudest buffered
+  window instead of idling. First clip frame was extracted and visually checked
+  (real gameplay, correct 44s trim).
+- **Radar counts are real, not session-scoped.** `clipCountsByChannel()` in
+  `src/lib/watchlist.ts` counts `clips.json` by `assetId: live_<slug>` and the
+  board shows that number. The watcher's own `monitor.json` counters reset on
+  restart; a restart never deletes a clip, so the UI must not show 0 for an
+  inbox that holds 3. Per-row "Spikes · this run" is explicitly labelled as
+  run-scoped. Verified on screen: summary `Clips cut 2 · in the clip inbox` →
+  row `Clips 3 · 25s ago` after a third cut landed.
+
+### What actually runs
+- `scripts/watch-supervisor.mjs` — detaches the watcher with
+  `subprocess.Popen(..., start_new_session=True)` semantics, restarts it with
+  5s→60s exponential backoff, and resets backoff after a >120s run. This is the
+  only supported way to start the watcher: a plain `nohup … &` gets SIGTERM'd
+  when the launching shell exits.
+- `scripts/watch.mjs` — no npm deps. Polls
+  `https://kick.com/api/v2/channels/<slug>` every 15s, records the signed HLS
+  stream into 4-second MPEG-TS segments in a 240s ring (700 MB hard cap), taps
+  8 kHz mono PCM, and cuts `[spike-12s, spike+28s]` when rolling RMS exceeds
+  baseline by +8 dB and clears -34 dBFS. Falls back to the loudest buffered
+  window after `WATCH_FALLBACK_SEC` (180s). Clips land in
+  `cuts/<userId>/clip_<uuid>.mp4` with a 1080x1920 render beside them.
+- Live detection reads the stream payload, not chat. Kick chat REST returns
+  `401 Unauthenticated`, the old Pusher key answers `4001 … not in this
+  cluster`, and `wss://websockets.kick.com/viewer/v1/connect` needs a token.
+  `playback_url` lives at the **top level** of `/api/v2/channels/<slug>`, not
+  under `livestream`; reading only the nested field made a 16k-viewer stream
+  look offline. Both are now checked, top-level first.
+- `channels.json` is app-owned. The watcher seeds it from `WATCH_CHANNELS` only
+  when empty (`addedBy: "watcher-seed"`) and otherwise re-reads it every poll,
+  so the radar's add/remove form takes effect without a restart.
+- Crash resilience, proven by killing things:
+  - `kill -9` the ffmpeg child → log shows `segmenter exited (null)` →
+    `retrying in 5s (attempt 1)` → `recovered after 1 restart attempt(s)` →
+    `recording from segment 105`, watcher pid unchanged.
+  - `kill -9` the watcher → supervisor respawns it (pid 81240), heartbeat
+    resumes, no duplicate cut from the pre-restart ring (`startIndex` warm-up
+    boundary).
+  - Three real bugs fixed to get there: `unref()`'d intervals let the daemon
+    exit when ffmpeg died; a 255 "Packet corrupt" exit had no backoff; a restart
+    re-ingested the old ring and re-cut the same moment.
+
+### How to run it
+```bash
+cd ~/clip-mvp
+npm run app:mac                       # build + install, no access code locally
+CLIPMVP_DATA_DIR="$HOME/Library/Application Support/Street Ethics Clip Engine/data" \
+CLIPMVP_USER_ID=household WATCH_CHANNELS=deenthegreat \
+  node scripts/watch-supervisor.mjs   # daemon; pkill -f watch-supervisor to stop
+```
+The watcher has been running continuously through app rebuilds and its own
+kills; heartbeat stays under 20s, the ring settles near 240s of buffered video
+(~267 MB on disk), and unused segments are pruned.
+
+### Known limits — say these plainly
+- Detection is **loudness**, not chat velocity or gameplay understanding. It
+  will cut a loud ad, a hype moment, and a shouting argument alike. Chat-based
+  detection needs a registered Kick OAuth app with `events:subscribe`.
+- The hosted Vercel build cannot run the pipeline: no `ffmpeg` in serverless,
+  no `DATABASE_URL`, no Blob token. Prod is the UI plus the access-code gate.
+- Kick's `/api/v2` is public but unversioned for our purposes; a field change
+  would break polling until updated. `watch.log` records every non-200.
+- The watched stream is a third party's. Clips are local files for review; no
+  upload or publish step exists.

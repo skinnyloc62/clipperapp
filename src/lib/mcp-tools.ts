@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
+import { dataPath } from "./data-root";
 import { resolveAssetFile } from "./assets";
 import { trimFile, renderVertical, probeFile } from "./ffmpeg";
 import { fetchBlobToTmp } from "./media";
@@ -199,8 +200,8 @@ export const clipengine_cut = {
       const out = process.env.VERCEL
         ? join((await import("node:os")).tmpdir(), `${clipId}.mp4`)
         : (() => {
-            mkdirSync(join(process.cwd(), ".data", "cuts", userId), { recursive: true });
-            return join(process.cwd(), ".data", "cuts", userId, `${clipId}.mp4`);
+            mkdirSync(dataPath("cuts", userId), { recursive: true });
+            return dataPath("cuts", userId, `${clipId}.mp4`);
           })();
       const trim = await trimFile(inputPath, args.startSec, dur, out);
       if (!trim.ok) return err(trim.reason || "trim failed", "trim_failed");
@@ -289,8 +290,8 @@ export const clipengine_render = {
     const out = process.env.VERCEL
       ? join((await import("node:os")).tmpdir(), `${renderId}.mp4`)
       : (() => {
-          mkdirSync(join(process.cwd(), ".data", "renders", userId), { recursive: true });
-          return join(process.cwd(), ".data", "renders", userId, `${renderId}.mp4`);
+          mkdirSync(dataPath("renders", userId), { recursive: true });
+          return dataPath("renders", userId, `${renderId}.mp4`);
         })();
     const r = await renderVertical(inputPath, out);
     if (clipBlob) {

@@ -118,11 +118,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
           <div className="flex items-center gap-2">
             <span className="pulse-dot" aria-hidden="true" />
-            <span className="text-[12px] font-medium text-[var(--text)]">Demo data, real routes</span>
+            <span className="text-[12px] font-medium text-[var(--text)]">Running on this Mac</span>
           </div>
           <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--faint)]">
-            Feeds, scores, and earnings are labelled demo. Auth, the clip pipeline, and downloads are
-            live routes writing real files on this machine.
+            Uploads, cuts, renders, and downloads are real files in this app&rsquo;s data folder. Any
+            stage that is not wired says so on its own screen — nothing here is filled in to look busy.
           </p>
           <Link
             href="/login"
@@ -184,10 +184,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
               <div className="flex items-center gap-2">
                 <span className="pulse-dot" aria-hidden="true" />
-                <span className="text-[12px] font-medium">Demo data, real routes</span>
+                <span className="text-[12px] font-medium">Running on this Mac</span>
               </div>
               <p className="mt-1.5 text-[11.5px] leading-relaxed text-[var(--faint)]">
-                Feeds and scores are demo. The clip pipeline writes real files on this machine.
+                Real files in this app&rsquo;s data folder. Unwired stages say so on their own screen.
               </p>
             </div>
           </div>

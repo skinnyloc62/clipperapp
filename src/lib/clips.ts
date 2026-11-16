@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { dataPath } from "./data-root";
 import { mediaOnLocalDisk } from "./storage-mode";
 
 /**
@@ -68,7 +69,7 @@ export interface BrandRecord {
 }
 
 function dataDir(): string {
-  return join(process.cwd(), ".data");
+  return dataPath();
 }
 
 function readTable<T>(name: string): Record<string, T> {
@@ -94,13 +95,20 @@ function guard(): void {
   }
 }
 
-function namespaced<T extends { userId: string }>(table: string) {
+function namespaced<T extends { userId: string; createdAt: string }>(table: string) {
   return {
     get(id: string, userId: string): T | null {
       guard();
       const rec = readTable<T>(table)[id];
       if (!rec || rec.userId !== userId) return null;
       return rec;
+    },
+    /** Every record owned by userId, newest first. */
+    list(userId: string): T[] {
+      guard();
+      return Object.values(readTable<T>(table))
+        .filter((rec) => rec.userId === userId)
+        .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     },
     save(rec: T, id: string): T {
       guard();

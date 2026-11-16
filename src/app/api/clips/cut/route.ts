@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { requireUser } from "@/lib/auth";
+import { dataPath } from "@/lib/data-root";
 import { cutSchema, MAX_CLIP_SEC } from "@/lib/validators";
 import { resolveAssetFile } from "@/lib/assets";
 import { trimFile, probeFile } from "@/lib/ffmpeg";
@@ -94,7 +95,7 @@ export async function POST(req: Request): Promise<Response> {
       rm(tmpOut);
       clipBlobUrl = uploaded.url;
     } else if (!process.env.VERCEL) {
-      const dir = join(process.cwd(), ".data", "cuts", user.userId);
+      const dir = dataPath("cuts", user.userId);
       mkdirSync(dir, { recursive: true });
       localPath = join(dir, `${clipId}.mp4`);
       const trim = await trimFile(inputPath, startSec, dur, localPath);

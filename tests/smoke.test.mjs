@@ -46,11 +46,16 @@ describe("section 1 scaffold", () => {
     }
   });
 
-  it("dashboard shell has all four placeholders", () => {
-    const page = read("src/app/page.tsx");
-    for (const section of ["Overview", "Inbox", "Editor", "Approval"]) {
-      assert.ok(page.includes(section), `missing ${section} placeholder`);
+  it("dashboard shell exposes the core workflow areas", () => {
+    // Section 1 shipped four placeholder cards on the home page. They were
+    // replaced by the real command center, and Inbox/Editor/Approval became real
+    // routes in the shell nav. Assert the shipped structure instead of the
+    // scaffold copy it superseded.
+    const shell = read("src/components/AppShell.tsx");
+    for (const href of ['href: "/"', 'href: "/clips"', 'href: "/editor"', 'href: "/approvals"']) {
+      assert.ok(shell.includes(href), `nav missing ${href}`);
     }
+    assert.ok(read("src/app/page.tsx").includes("What is real on this screen"), "home must label demo vs real data");
   });
 
   it("sample fixture manifest exists", () => {

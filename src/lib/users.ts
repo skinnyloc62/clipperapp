@@ -1,6 +1,7 @@
 import { scryptSync, timingSafeEqual, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { dataPath, dataRoot } from "./data-root";
 
 export interface DevUser {
   id: string;
@@ -11,7 +12,7 @@ export interface DevUser {
 }
 
 function usersPath(): string {
-  return join(process.cwd(), ".data", "users.json");
+  return dataPath("users.json");
 }
 
 function assertLocalAllowed(): void {
@@ -72,7 +73,7 @@ export const devUsers = {
         createdAt: new Date().toISOString(),
       });
     }
-    mkdirSync(join(process.cwd(), ".data"), { recursive: true });
+    mkdirSync(dataRoot(), { recursive: true });
     writeFileSync(usersPath(), JSON.stringify(users, null, 2));
     return users.find((u) => u.email.toLowerCase() === email.toLowerCase())!;
   },

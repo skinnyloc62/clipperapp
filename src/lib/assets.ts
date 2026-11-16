@@ -1,5 +1,6 @@
 import { existsSync, realpathSync, statSync } from "node:fs";
 import { join, basename } from "node:path";
+import { dataPath, safeRealpath } from "./data-root";
 import { mediaUsesPrisma } from "./storage-mode";
 
 export type ResolvedAsset =
@@ -54,7 +55,7 @@ export async function resolveAssetFile(assetId: string, userId: string): Promise
   if (blobUrl) return { kind: "blob", url: blobUrl, durationSec, status };
 
   if (localPath) {
-    const root = join(process.cwd(), ".data", "uploads", userId);
+    const root = safeRealpath(dataPath("uploads", userId));
     let real: string;
     try {
       real = realpathSync(localPath);

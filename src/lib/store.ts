@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
+import { dataPath } from "./data-root";
 import { mediaOnLocalDisk } from "./storage-mode";
 
 export type AssetStatus = "uploaded" | "validated" | "invalid";
@@ -26,9 +27,8 @@ export interface AssetRecord {
 }
 
 function dataDir(): string {
-  // Repo-root .data (gitignored). Serverless never reaches here: Vercel sets VERCEL=1.
-  const root = join(dirname(new URL(import.meta.url).pathname), "..", "..", "..");
-  return join(root, ".data");
+  // Local data root. Serverless never reaches here: Vercel sets VERCEL=1.
+  return dataPath();
 }
 
 function registryPath(): string {
@@ -80,6 +80,13 @@ export const devStore = {
     const rec = readAll()[assetId];
     if (!rec || rec.userId !== userId) return null;
     return rec;
+  },
+  /** Every asset owned by userId, newest first. */
+  list(userId: string): AssetRecord[] {
+    assertDevStoreAllowed();
+    return Object.values(readAll())
+      .filter((rec) => rec.userId === userId)
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   },
   update(assetId: string, userId: string, patch: Partial<AssetRecord>): AssetRecord | null {
     assertDevStoreAllowed();

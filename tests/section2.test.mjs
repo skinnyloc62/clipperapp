@@ -43,7 +43,11 @@ describe("section 2 upload architecture", () => {
     for (const p of ["src/app/api/uploads/route.ts", "src/app/api/uploads/token/route.ts", "src/app/api/clips/validate/route.ts"]) {
       assert.ok(read(p).includes("requireUser"), `${p} missing requireUser`);
     }
-    for (const p of ["middleware.ts", "src/lib/auth.ts", "src/app/login/page.tsx", "src/app/api/auth/login/route.ts", "src/app/api/auth/logout/route.ts", "src/lib/users.ts", "prisma/seed.mjs"]) {
+    // The gate lives in src/middleware.ts. A root middleware.ts was deleted on
+    // purpose: this app uses src/app, and Next.js reads middleware.ts from the
+    // repo root OR src/ — never both. The root copy was silently ignored, so the
+    // gate did not run at all. Assert the path that Next actually executes.
+    for (const p of ["src/middleware.ts", "src/lib/auth.ts", "src/app/login/page.tsx", "src/app/api/auth/login/route.ts", "src/app/api/auth/logout/route.ts", "src/lib/users.ts", "prisma/seed.mjs"]) {
       assert.ok(existsSync(join(ROOT, p)), `missing ${p}`);
     }
   });

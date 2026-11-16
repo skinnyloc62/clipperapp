@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    Street Ethics Clip Engine — app mark.
+    1024 canvas, 824x824 tile at (100,100): Apple's icon grid for macOS 11+.
+
+    Mark = a play triangle severed by a razor cut, the two halves slid apart along
+    the cut normal. Clip + cut in one gesture, and it still reads as a play button
+    at 32px because the silhouette is one bold shape.
+
+    The union bounding box is centred on the tile centre (512,512) AFTER the slide:
+    x 335 -> 659+30 = 689, y 310 -> 678+36 = 714. That keeps the mark optically
+    centred instead of drifting right and low.
+  -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#16161C"/>
+      <stop offset="0.55" stop-color="#0C0C10"/>
+      <stop offset="1" stop-color="#070709"/>
+    </linearGradient>
+
+    <radialGradient id="lift" cx="0.5" cy="0.14" r="0.82">
+      <stop offset="0" stop-color="#2C2C38" stop-opacity="0.80"/>
+      <stop offset="0.58" stop-color="#14141A" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="red" x1="0.10" y1="0.02" x2="0.88" y2="1">
+      <stop offset="0" stop-color="#FF4455"/>
+      <stop offset="0.40" stop-color="#E11D2E"/>
+      <stop offset="1" stop-color="#910F20"/>
+    </linearGradient>
+
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#E11D2E" stop-opacity="0.42"/>
+      <stop offset="0.62" stop-color="#E11D2E" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#E11D2E" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Tapered comet: bright at the head, gone at the tail. -->
+    <linearGradient id="trail" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.42"/>
+    </linearGradient>
+
+    <filter id="soft" x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+    <filter id="softer" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="30"/>
+    </filter>
+
+    <!-- The mark's own silhouette, so the glint can never escape it. -->
+    <clipPath id="triClip">
+      <path d="M 335 310 L 335 678 L 659 494 Z"/>
+    </clipPath>
+
+    <!-- Two half-planes split along the razor line through (512,512) at -40deg. -->
+    <clipPath id="halfUp">
+      <polygon points="-560.5,1411.9 1584.5,-387.9 684.6,-1460.4 -1460.4,339.4"/>
+    </clipPath>
+    <clipPath id="halfDown">
+      <polygon points="-560.5,1411.9 1584.5,-387.9 2484.4,684.6 339.4,2484.4"/>
+    </clipPath>
+  </defs>
+
+  <!-- Tile -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#tile)"/>
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#lift)"/>
+  <rect x="100.75" y="100.75" width="822.5" height="822.5" rx="185.25"
+        fill="none" stroke="#FFFFFF" stroke-opacity="0.10" stroke-width="1.5"/>
+
+  <!-- Atmosphere: bloom behind the mark, one comet, two still stars -->
+  <ellipse cx="512" cy="512" rx="236" ry="236" fill="url(#glow)" filter="url(#softer)"/>
+
+  <!-- Tapered head-to-tail sliver, not a constant-width stroke: a stroke here
+       reads as a scratch on the glass rather than a comet. -->
+  <path d="M 317 231 L 327 242 L 209 346 Z" fill="url(#trail)"/>
+  <circle cx="321" cy="236" r="7" fill="#FFFFFF" opacity="0.60" filter="url(#soft)"/>
+  <circle cx="321" cy="236" r="2.4" fill="#FFFFFF" opacity="0.92"/>
+
+  <path d="M 782 748 Q 782 764 798 764 Q 782 764 782 780 Q 782 764 766 764 Q 782 764 782 748 Z"
+        fill="#FFFFFF" opacity="0.34"/>
+  <path d="M 250 800 Q 250 812 262 812 Q 250 812 250 824 Q 250 812 238 812 Q 250 812 250 800 Z"
+        fill="#FFFFFF" opacity="0.22"/>
+
+  <!--
+    The mark: play triangle in two halves slid apart along the cut.
+    Each half carries its OWN copy of the glint, clipped inside the half, so the
+    highlight can never straddle the gap and float on the dark tile.
+  -->
+  <g clip-path="url(#halfUp)">
+    <path d="M 335 310 L 335 678 L 659 494 Z"
+          fill="url(#red)" stroke="url(#red)" stroke-width="12" stroke-linejoin="round"/>
+    <g clip-path="url(#triClip)">
+      <path d="M 372 568 L 586 392" stroke="#FFFFFF" stroke-opacity="0.26"
+            stroke-width="7" stroke-linecap="round" filter="url(#soft)"/>
+      <path d="M 372 568 L 586 392" stroke="#FFFFFF" stroke-opacity="0.70"
+            stroke-width="2.2" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <g clip-path="url(#halfDown)">
+    <g transform="translate(30,36)">
+      <!-- No glint on this half. Mirroring the highlight onto both pieces reads
+           as a doubled, smeared stroke instead of one light source. -->
+      <path d="M 335 310 L 335 678 L 659 494 Z"
+            fill="url(#red)" stroke="url(#red)" stroke-width="12" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>

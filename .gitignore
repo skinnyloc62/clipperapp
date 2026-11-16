@@ -14,3 +14,6 @@ renders/
 
 # local dev server output
 dev.log
+
+# electron packaging staging + output
+electron-build/

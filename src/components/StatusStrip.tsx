@@ -8,13 +8,12 @@ const toneStyle: Record<string, { text: string; bar: string }> = {
 
 const neutral = { text: "var(--text)", bar: "linear-gradient(90deg, rgba(255,255,255,0.5), rgba(255,255,255,0.05))" };
 
-export default function StatusStrip({ stats, demo }: { stats: Stat[]; demo?: boolean }) {
+export default function StatusStrip({ stats }: { stats: Stat[] }) {
   return (
     <section aria-label="System status" className="panel-3d overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-5 py-3.5">
         <div className="flex items-center gap-2.5">
           <h2 className="text-[13.5px] font-semibold text-[var(--text)]">System status</h2>
-          {demo ? <span className="chip chip-demo">demo</span> : null}
         </div>
         <p className="text-[11.5px] text-[var(--faint)]">
           Counts describe the pipeline, not performance.

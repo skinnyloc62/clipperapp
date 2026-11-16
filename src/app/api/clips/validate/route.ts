@@ -7,6 +7,7 @@ import { validateClipSchema } from "@/lib/validators";
 import { requireUser } from "@/lib/auth";
 import { fetchBlobToTmp } from "@/lib/media";
 import { devStore } from "@/lib/store";
+import { dataPath, safeRealpath } from "@/lib/data-root";
 import { mediaUsesPrisma } from "@/lib/storage-mode";
 
 const MAX_SOURCE_SEC = 600; // 10-minute source cap for Phase 1/2.
@@ -81,7 +82,7 @@ export async function POST(req: Request): Promise<Response> {
         } catch { /* best effort */ }
       };
     } else if (localPath) {
-      const root = join(process.cwd(), ".data", "uploads", user.userId);
+      const root = safeRealpath(dataPath("uploads", user.userId));
       let real: string;
       try {
         real = realpathSync(localPath);

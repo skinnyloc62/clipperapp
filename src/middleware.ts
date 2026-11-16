@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { sessionCookieName } from "@/lib/auth";
+import { authBypassActive, isLoopbackHost, sessionCookieName } from "@/lib/auth";
 
 /**
  * Login gate.
@@ -19,8 +19,34 @@ const PUBLIC_PATHS = ["/login", "/api/auth/login"];
 /** App pages that require a session. */
 const PROTECTED_PAGES = ["/", "/clips", "/approvals", "/earnings", "/editor", "/radar", "/settings"];
 
+/** Host header minus port and IPv6 brackets. */
+function requestHost(req: NextRequest): string {
+  const raw = req.headers.get("host") ?? req.nextUrl.hostname;
+  if (raw.startsWith("[")) {
+    const end = raw.indexOf("]");
+    return end === -1 ? raw : raw.slice(0, end + 1);
+  }
+  return raw.split(":")[0];
+}
+
 export function middleware(req: NextRequest): NextResponse {
   const { pathname } = req.nextUrl;
+
+  /**
+   * Local-only bypass for the owner's own machine (see authBypassActive).
+   * Requires BOTH the flag and a loopback hostname, so a dev server shared over
+   * the LAN still asks for the access code. /login redirects home instead of
+   * rendering a gate that would be pointless here.
+   */
+  if (authBypassActive() && isLoopbackHost(requestHost(req))) {
+    if (pathname === "/login") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return NextResponse.next();

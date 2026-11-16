@@ -34,6 +34,34 @@ export function sessionCookieName(): string {
   return COOKIE_NAME;
 }
 
+/** The single shared workspace both people write to. */
+export const WORKSPACE_USER_ID = "household";
+
+/**
+ * Local-only auth bypass, for the owner's own machine.
+ *
+ * `LOCAL_AUTH_BYPASS=1` skips the access code on loopback. Three guards keep it
+ * from ever weakening the deployed app:
+ *
+ *  1. `process.env.VERCEL` short-circuits to `false`, so a Vercel deploy is
+ *     always gated even if the flag is copied into its env vars by mistake.
+ *  2. The middleware additionally requires a loopback hostname, so a dev server
+ *     exposed on the LAN still asks for the code.
+ *  3. It never widens the API boundary: `requireUser()` returns the same
+ *     workspace id the access-code login does, so local writes land in the same
+ *     rows the hosted app reads. Skipping the login screen is not the same as
+ *     skipping the user.
+ */
+export function authBypassActive(): boolean {
+  if (process.env.VERCEL) return false;
+  return process.env.LOCAL_AUTH_BYPASS === "1";
+}
+
+/** True for localhost / 127.0.0.1 / ::1 only. */
+export function isLoopbackHost(host: string): boolean {
+  return host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+}
+
 function appPassword(): string {
   return process.env.APP_PASSWORD || "";
 }
@@ -47,6 +75,9 @@ export async function requireUser(): Promise<{ userId: string; email?: string } 
   } catch {
     // Fall through to bearer check (e.g. misconfigured secret -> deny below).
   }
+  // 2. Local-only bypass. Same workspace id the access code resolves to, so a
+  //    local session writes to the exact rows the hosted app reads.
+  if (authBypassActive()) return { userId: WORKSPACE_USER_ID };
   return Response.json({ error: "unauthorized" }, { status: 401 });
 }
 

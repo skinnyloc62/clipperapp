@@ -1,14 +1,24 @@
 import Link from "next/link";
 import PageHeader, { HelpPanel, SectionHead } from "@/components/PageHeader";
 import StatusStrip from "@/components/StatusStrip";
-import StreamerCard from "@/components/StreamerCard";
-import ClipOpportunityCard from "@/components/ClipOpportunityCard";
+import EmptyState from "@/components/EmptyState";
 import Icon, { type IconName } from "@/components/Icon";
-import { DEMO_CANDIDATES, DEMO_STATUS, DEMO_STREAMERS } from "@/mocks/demo";
+import { readDashboard } from "@/lib/dashboard";
+import {
+  listChannels,
+  monitorAgeSec,
+  monitorRunning,
+  readMonitor,
+  type ChannelMonitor,
+  type ChannelRecord,
+} from "@/lib/watchlist";
 
 /* Command Center — the one screen that answers "what is happening right
-   now and what needs me?". Every number on this route comes from
-   src/mocks/demo.ts and is labelled DEMO. No fetch happens here. */
+   now and what needs me?". Every count is read from records this app wrote
+   (src/lib/dashboard.ts). Nothing on this route is invented: where a stage
+   has produced no records yet, the section says so instead of filling in. */
+
+export const dynamic = "force-dynamic";
 
 type Stage = { n: string; title: string; icon: IconName; body: string; href: string };
 
@@ -24,7 +34,7 @@ const STAGES: Stage[] = [
     n: "02",
     title: "Detect",
     icon: "spark",
-    body: "Chat spikes and keyword bursts get scored into clip candidates.",
+    body: "Audio spikes above a rolling baseline get scored into clip candidates.",
     href: "/clips",
   },
   {
@@ -49,6 +59,12 @@ const STAGES: Stage[] = [
     href: "/earnings",
   },
 ];
+
+/* UTC clock from an ISO stamp — no timezone drift between server and client. */
+function shortUtc(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
+  return m ? `${m[2]}/${m[3]} · ${m[4]}:${m[5]} UTC` : iso;
+}
 
 function Pipeline() {
   return (
@@ -83,22 +99,66 @@ function Pipeline() {
       </ol>
 
       <p className="border-t border-[var(--line)] bg-white/[0.012] px-5 py-3 text-[11.5px] leading-relaxed text-[var(--faint)]">
-        Capture and rendering routes exist in the repo but are not connected to this UI yet — these
-        screens are the front end for them.
+        Upload, cut, and export routes are wired to this machine, and the watcher records and cuts on its own
+        once it is running. This footer changes nothing that the counters above do not already prove.
       </p>
     </section>
   );
 }
 
-function ScopePanel() {
+const nf = new Intl.NumberFormat("en-US");
+
+function ChannelMini({ channel, monitor }: { channel: ChannelRecord; monitor: ChannelMonitor | null }) {
+  const live = Boolean(monitor?.live);
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+      <div className="flex min-w-0 items-baseline gap-2">
+        <span
+          aria-hidden="true"
+          className="mt-[5px] h-[6px] w-[6px] shrink-0 rounded-full"
+          style={{ background: live ? "#3ddc97" : "rgba(255,255,255,0.18)" }}
+        />
+        <span className="truncate text-[13px] font-medium text-[var(--text)]">/{channel.slug}</span>
+        <span className="truncate text-[11.5px] text-[var(--faint)]">
+          {monitor?.title || (monitor ? "no title reported" : "not polled yet")}
+        </span>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        {live ? (
+          <span className="chip chip-live">
+            {typeof monitor?.viewers === "number" ? `${nf.format(monitor.viewers)} watching` : "live"}
+          </span>
+        ) : (
+          <span className="chip">offline</span>
+        )}
+        <span className="num text-[11.5px] text-[var(--faint)]">
+          {monitor ? `${monitor.bufferedSec}s buffered` : "—"}
+        </span>
+        <span className="num text-[11.5px] text-[var(--faint)]">{monitor?.clips ?? 0} clips</span>
+      </div>
+    </li>
+  );
+}
+
+function ScopePanel({ readable, watching }: { readable: boolean; watching: boolean }) {
   return (
     <section className="panel-3d p-5" aria-label="What is real on this screen">
       <h2 className="text-[13.5px] font-semibold text-[var(--text)]">What is real on this screen</h2>
       <ul className="mt-3 space-y-2.5">
         {[
           ["Layout & components", "Real. Built and running."],
-          ["Numbers & channels", "Demo. Fixed values from a mock file."],
-          ["Auth session", "Real route, needs a database to sign in."],
+          [
+            "Counters",
+            readable ? "Real. Counted from this machine's data folder." : "Unavailable on this host — no local data folder.",
+          ],
+          [
+            "Clip detection",
+            watching ? "Running on this machine — audio spikes against a rolling baseline." : "Idle. Start the watcher to detect anything.",
+          ],
+          [
+            "Channels & viewers",
+            watching ? "Real. Polled from kick.com every 15s and written to monitor.json." : "Watchlist is on disk; nothing is polling right now.",
+          ],
           ["Video previews", "None. No media is faked here."],
         ].map(([k, v]) => (
           <li key={k} className="flex items-baseline justify-between gap-3 border-b border-[var(--line)] pb-2.5 last:border-0 last:pb-0">
@@ -112,6 +172,13 @@ function ScopePanel() {
 }
 
 export default function CommandCenterPage() {
+  const data = readDashboard();
+  const channels = listChannels();
+  const snap = readMonitor();
+  const workerRunning = monitorRunning(snap);
+  const heartbeat = monitorAgeSec(snap);
+  const liveNow = channels.filter((c) => snap?.channels?.[c.slug]?.live).length;
+
   return (
     <div>
       <PageHeader
@@ -124,8 +191,8 @@ export default function CommandCenterPage() {
         description="Watch the channels you care about, catch the moment that matters, and ship it — without a second app or a spreadsheet."
         actions={
           <>
-            <Link href="/clips" className="btn btn-primary">
-              Open clip inbox <Icon name="arrow" size={15} />
+            <Link href="/editor" className="btn btn-primary">
+              Upload &amp; cut <Icon name="arrow" size={15} />
             </Link>
             <Link href="/radar" className="btn">
               <Icon name="radar" size={15} /> Live radar
@@ -134,25 +201,32 @@ export default function CommandCenterPage() {
         }
         meta={
           <>
-            <span className="chip chip-demo">demo data</span>
             <span className="chip">local build</span>
-            <span className="chip">no API calls on this screen</span>
+            <span className="chip">counts read from disk</span>
+            <span className="chip">{workerRunning ? "watcher running" : "watcher stopped"}</span>
           </>
         }
       />
 
       <div className="mt-7 space-y-9">
         <StatusStrip
-          demo
           stats={[
-            { label: "Monitored", value: DEMO_STATUS.monitored, hint: "Channels on the watchlist" },
-            { label: "Live now", value: DEMO_STATUS.live, tone: "live", hint: "Broadcasting this minute" },
-            { label: "Detected", value: DEMO_STATUS.detected, hint: "Candidates in the inbox" },
-            { label: "Awaiting media", value: DEMO_STATUS.awaitingMedia, tone: "warn", hint: "Needs a native clip" },
-            { label: "Processing", value: DEMO_STATUS.processing, hint: "Cuts running now" },
-            { label: "Awaiting approval", value: DEMO_STATUS.awaitingApproval, hint: "Waiting on you" },
-            { label: "Exported", value: DEMO_STATUS.exported, hint: "Files downloaded" },
-            { label: "Errors", value: DEMO_STATUS.errors, tone: DEMO_STATUS.errors > 0 ? "bad" : undefined, hint: "Failed stages" },
+            { label: "Uploaded", value: data.uploaded, hint: "Source files on this machine" },
+            { label: "Cuts", value: data.cuts, hint: "Clips created from sources" },
+            { label: "Awaiting you", value: data.awaitingApproval, tone: data.awaitingApproval > 0 ? "warn" : undefined, hint: "Cuts with no decision" },
+            { label: "Approved", value: data.approved, hint: "Cleared to render" },
+            { label: "Rendering", value: data.processing, hint: "Queued or running" },
+            { label: "Exported", value: data.exported, hint: "Finished renders" },
+            { label: "Failed", value: data.failed, tone: data.failed > 0 ? "bad" : undefined, hint: "Stages that errored" },
+            {
+              label: "Channels",
+              value: channels.length,
+              hint: workerRunning
+                ? `${liveNow} live · heartbeat ${heartbeat ?? "—"}s ago`
+                : channels.length
+                  ? "On the watchlist · watcher stopped"
+                  : "Watchlist empty",
+            },
           ]}
         />
 
@@ -164,38 +238,83 @@ export default function CommandCenterPage() {
               <SectionHead
                 id="inbox-heading"
                 title="Needs your attention"
-                count={DEMO_CANDIDATES.length}
-                hint="Scored moments waiting for a cut, in the order the detector ranked them."
+                count={data.awaitingApproval}
+                hint="Cuts waiting on a decision, newest first."
                 action={
-                  <Link href="/clips" className="btn btn-quiet !h-8 !px-2 !text-[12px]">
-                    All clips <Icon name="arrow" size={13} />
+                  <Link href="/approvals" className="btn btn-quiet !h-8 !px-2 !text-[12px]">
+                    Approvals <Icon name="arrow" size={13} />
                   </Link>
                 }
               />
-              <div className="grid gap-4 sm:grid-cols-2">
-                {DEMO_CANDIDATES.slice(0, 2).map((c) => (
-                  <ClipOpportunityCard key={c.id} candidate={c} />
-                ))}
-              </div>
+              {data.recentCuts.length > 0 ? (
+                <ul className="panel-3d divide-y divide-[var(--line)] overflow-hidden">
+                  {data.recentCuts.map((c) => (
+                    <li key={c.clipId} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+                      <div className="min-w-0">
+                        <p className="num truncate text-[12.5px] text-[var(--text)]">{c.clipId}</p>
+                        <p className="num mt-0.5 text-[11px] text-[var(--faint)]">
+                          {Math.max(0, Math.round(c.endSec - c.startSec))}s · {shortUtc(c.createdAt)}
+                        </p>
+                      </div>
+                      <span
+                        className={
+                          "chip " +
+                          (c.status === "approved" ? "chip-live" : c.status === "rejected" ? "chip-red" : "chip-warn")
+                        }
+                      >
+                        {c.status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState
+                  icon="scissors"
+                  title="Nothing is waiting on you"
+                  body="No cut has been created yet, so there is nothing to approve. Upload a source on the Editor screen and cut a moment — it appears here with its status."
+                  action={
+                    <Link href="/editor" className="btn btn-primary">
+                      Open editor <Icon name="arrow" size={15} />
+                    </Link>
+                  }
+                  note="Empty because no clip exists — not a loading state"
+                />
+              )}
             </section>
 
             <section aria-labelledby="radar-heading">
               <SectionHead
                 id="radar-heading"
                 title="Live radar"
-                count={DEMO_STREAMERS.filter((s) => s.live).length}
-                hint="One row per monitored channel. Alerts appear as the detector fires."
+                count={channels.length}
+                hint="One row per monitored channel, with the last thing the watcher reported."
                 action={
                   <Link href="/radar" className="btn btn-quiet !h-8 !px-2 !text-[12px]">
                     Open radar <Icon name="arrow" size={13} />
                   </Link>
                 }
               />
-              <div className="grid gap-4 sm:grid-cols-2">
-                {DEMO_STREAMERS.map((s) => (
-                  <StreamerCard key={s.id} streamer={s} />
-                ))}
-              </div>
+              {channels.length === 0 ? (
+                <EmptyState
+                  icon="radar"
+                  title="No channels on the watchlist"
+                  body="Add a Kick channel on the radar screen and the watcher starts recording it on its next poll. Each channel then appears here with its live status, buffer depth, and how many clips it has produced."
+                  action={
+                    <Link href="/radar" className="btn btn-primary">
+                      Add a channel <Icon name="arrow" size={15} />
+                    </Link>
+                  }
+                  note="Empty because nothing is watched — not a loading state"
+                />
+              ) : (
+                <div className="panel-3d overflow-hidden">
+                  <ul className="divide-y divide-[var(--line)]">
+                    {channels.map((c) => (
+                      <ChannelMini key={c.slug} channel={c} monitor={snap?.channels?.[c.slug] ?? null} />
+                    ))}
+                  </ul>
+                </div>
+              )}
             </section>
           </div>
 
@@ -203,11 +322,11 @@ export default function CommandCenterPage() {
             <HelpPanel
               items={[
                 { label: "Read the tiles", body: "The eight counts describe where work sits in the pipeline — not how well anything is performing." },
-                { label: "Start here", body: "Open the clip inbox. Cards arrive pre-scored; you decide what gets cut." },
+                { label: "Start here", body: "Upload a source, cut it, then approve it. Each tile fills in as you go." },
                 { label: "Nothing auto-ships", body: "Rendering and export both wait on an explicit approval from you." },
               ]}
             />
-            <ScopePanel />
+            <ScopePanel readable={data.readable} watching={workerRunning} />
           </aside>
         </div>
       </div>

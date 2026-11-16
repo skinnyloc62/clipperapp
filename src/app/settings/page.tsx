@@ -1,10 +1,21 @@
 import Link from "next/link";
 import PageHeader, { HelpPanel } from "@/components/PageHeader";
 import Icon from "@/components/Icon";
-import { DEMO_STREAMERS } from "@/mocks/demo";
+import { mediaOnLocalDisk } from "@/lib/storage-mode";
+import { blobConfigured } from "@/lib/blob";
+import { monitorAgeSec, monitorRunning, readMonitor } from "@/lib/watchlist";
 
 /* Settings — read-only in this build. Every control that would write is
    disabled and says so. No optimistic toggles pretending to save. */
+
+export const dynamic = "force-dynamic";
+
+/** Heartbeat age when the worker is stopped — never invented, always dated. */
+function snapshotAge(snap: ReturnType<typeof readMonitor>): string {
+  if (!snap) return "never";
+  const age = monitorAgeSec(snap);
+  return age === null ? "never" : `${age}s ago · stale`;
+}
 
 function Block({
   title,
@@ -56,6 +67,15 @@ function Switch({ label, on }: { label: string; on: boolean }) {
 }
 
 export default function SettingsPage() {
+  // Read the live environment instead of printing a fixed label. These are
+  // booleans only — no secret, URL, or key ever reaches the markup.
+  const localDisk = mediaOnLocalDisk();
+  const blobReady = blobConfigured();
+  const hasDatabase = Boolean(process.env.DATABASE_URL);
+  const snap = readMonitor();
+  const workerRunning = monitorRunning(snap);
+  const heartbeat = monitorAgeSec(snap);
+
   return (
     <div>
       <PageHeader
@@ -79,25 +99,15 @@ export default function SettingsPage() {
         <div className="space-y-5">
           <Block
             title="Monitored sources"
-            hint="Channels the monitor will poll once it is connected."
-            action={<span className="chip chip-demo">demo</span>}
+            hint="Channels the monitor will poll once it is connected (none yet)."
+            action={<span className="chip">0 added</span>}
           >
-            <ul className="divide-y divide-[var(--line)]">
-              {DEMO_STREAMERS.map((s) => (
-                <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-[var(--text)]">{s.channel}</p>
-                    <p className="num mt-0.5 truncate text-[11px] text-[var(--faint)]">{s.channelUrl}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={"chip " + (s.live ? "chip-live" : "")}>{s.live ? "live" : "offline"}</span>
-                    <button type="button" disabled className="btn !h-8 !px-2.5 !text-[12px]">
-                      Remove
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="px-5 py-4">
+              <p className="text-[12.5px] leading-relaxed text-[var(--muted)]">
+                No channels are on the watchlist. Nothing here is hidden behind a filter — there is no
+                sources table in this build, so the list is empty until the monitor is wired.
+              </p>
+            </div>
             <div className="flex items-center justify-between gap-3 border-t border-[var(--line)] px-5 py-2.5">
               <span className="text-[11px] text-[var(--faint)]">Add or remove is disabled in this build.</span>
               <Link href="/radar" className="btn btn-quiet !h-8 !px-2 !text-[12px]">
@@ -140,7 +150,7 @@ export default function SettingsPage() {
             <ul className="divide-y divide-[var(--line)]">
               {[
                 { label: "Email digest", detail: "One summary per session, not per alert.", on: false },
-                { label: "Live alert banner", detail: "In-app banner the moment a candidate is created.", on: true },
+                { label: "Live alert banner", detail: "In-app banner the moment a candidate is created.", on: false },
               ].map((row) => (
                 <li key={row.label} className="flex items-center justify-between gap-4 px-5 py-3">
                   <div className="min-w-0">
@@ -156,12 +166,16 @@ export default function SettingsPage() {
             </p>
           </Block>
 
-          <Block title="Storage" hint="Where uploaded and rendered files are written." action={<span className="chip">local driver</span>}>
+          <Block
+            title="Storage"
+            hint="Where uploaded and rendered files are written."
+            action={<span className="chip">{localDisk ? "local driver" : "remote"}</span>}
+          >
             <dl className="divide-y divide-[var(--line)]">
               {[
-                ["Driver", "local"],
-                ["Uploads", "kept on the app server"],
-                ["Remote bucket", "not configured"],
+                ["Driver", localDisk ? "local disk" : "database + blob"],
+                ["Uploads", localDisk ? "kept on this machine" : "not configured here"],
+                ["Remote bucket", blobReady ? "configured" : "not configured"],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between gap-3 px-5 py-2.5">
                   <dt className="text-[12.5px] text-[var(--muted)]">{k}</dt>
@@ -179,17 +193,21 @@ export default function SettingsPage() {
             items={[
               { label: "Nothing saves", body: "Every control is disabled on purpose. A toggle that flips but writes nowhere is worse than a greyed one." },
               { label: "Real values", body: "Driver and channel rows reflect the configured environment; the rest are intended defaults." },
-              { label: "Next", body: "Sources and rules will write to the database before the monitor ships." },
+              { label: "Next", body: "Channel polling and audio-spike detection already run on this machine; hosted builds keep the same screens but cannot record." },
             ]}
           />
           <section className="card p-4" aria-label="Environment">
             <h2 className="text-[13px] font-semibold text-[var(--text)]">Environment</h2>
             <dl className="mt-2.5 space-y-2">
               {[
-                ["Build", "local dev"],
-                ["Mode", "demo data"],
-                ["Database", "not connected"],
-                ["Worker", "not running"],
+                ["Build", localDisk ? "local" : "hosted"],
+                ["Media", localDisk ? "on this machine" : "database + blob"],
+                ["Database", hasDatabase ? "connected" : "not connected"],
+                ["Worker", workerRunning ? "running" : "not running"],
+                [
+                  "Heartbeat",
+                  workerRunning && heartbeat !== null ? `${heartbeat}s ago` : snapshotAge(snap),
+                ],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-baseline justify-between gap-3">
                   <dt className="text-[12px] text-[var(--muted)]">{k}</dt>
