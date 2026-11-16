@@ -40,9 +40,18 @@ update below supersedes older "no database / no Blob / no publish path" notes.
   The buffer lasts about four minutes, so old marks expire.
 - The rebuilt Electron app was installed at `/Applications/Street Ethics Clip
   Engine.app` and visually opened to Live Radar without a login screen.
+- Commit `3c674ab` was pushed to `main`; Vercel deployment
+  `clip-jy4rpj4if-team-homegrown.vercel.app` reached Ready. The stable URL is
+  `https://clip-mvp.vercel.app`. Anonymous `/` returned 307 to `/login` and
+  `/login` returned 200. The real access code and owner email login each
+  returned 200, issued a cookie, and opened `/clips` with 200.
+- The hosted page contained the published real test clip. Its approved render
+  download returned 302 to Blob. Temporarily setting that test clip to `cut`
+  made the same download return 404; approval was restored immediately.
 - Local checks: `npx tsc --noEmit` exit 0, `npm test` 29/29, `npm run build`
-  exit 0, packaged Mac build exit 0. See `docs/PROGRESS.md` for deployment
-  verification and remaining limits.
+  exit 0, packaged Mac build exit 0. The local unapproved render returned
+  206 from owner preview and 404 from download. See `docs/PROGRESS.md` for
+  remaining limits.
 
 ## What this is
 

@@ -31,7 +31,15 @@ routes to the real inbox. HTTP checked an unapproved render: preview 206 with
 1024 MP4 bytes for a range request, download 404. No status was changed in
 this check. The rebuilt Electron app was installed again.
 
-Pending at this journal entry: push the reviewed source to main, check both
-production login paths, hosted clip listing, approved download, unapproved 404,
-and update this journal with those HTTP results. No hosted cutting or automatic
-viral scoring exists.
+Commit `3c674ab` was pushed to `main`; Vercel deployment
+`clip-jy4rpj4if-team-homegrown.vercel.app` reached Ready. The stable production
+URL returned 307 from `/` to `/login`, and `/login` returned 200. Both the
+real access-code and owner-email logins returned 200 with session cookies;
+each opened `/clips` with 200. The real test clip was present. Its approved
+render returned 302 to Blob. The same render returned 404 while the test clip
+was temporarily unapproved; approval was restored.
+
+No hosted cutting or automatic viral scoring exists. The most likely next
+failure is the Mac watcher stopping; the hosted site has no cutter. Blob URLs
+are public to anyone holding the URL. The song-preview edit remains a local
+draft, unpublished.

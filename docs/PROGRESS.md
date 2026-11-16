@@ -30,11 +30,20 @@ Verified locally and against provisioned cloud resources:
   owner preview route, while its download returned `404`; `/approvals`
   redirected to the inbox with `307`.
 
-Still to verify after production deployment: both real login methods, the
-published clip on the hosted Clips page, an approved render download, and an
-unapproved 404. The site does not transcribe or score viral potential; the
+Production deployment `clip-jy4rpj4if-team-homegrown.vercel.app` reached Ready
+after commit `3c674ab` was pushed to `main`. Live checks on
+`https://clip-mvp.vercel.app`: anonymous `/` 307 to `/login`; `/login` 200;
+access-code login 200 and account login 200, each with a session cookie and
+`/clips` 200. The real approved test clip appeared, and its render download
+returned 302 to Blob. Temporarily setting that same clip to `cut` returned
+404 for the download; its approved status was restored immediately.
+
+Remaining limits: the site does not transcribe or score viral potential; the
 song-preview draft uses editorial screen text because local song ASR was
-unreliable. Blob media URLs are public if someone shares a URL.
+unreliable. Blob media URLs are public if someone shares a URL. The most
+likely operational failure is the Mac watcher stopping, because Vercel only
+views already published media. The manual timestamp buffer lasts about four
+minutes, so late marks cannot recover older moments from the live feed.
 
 Last updated 2026-11-16. This file is the resumable state. If you are an agent
 picking this up cold, read this first, then `BUILD_STATUS.md`, then
