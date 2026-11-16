@@ -1,0 +1,170 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import Icon, { type IconName } from "@/components/Icon";
+
+/* Auth screen. The submit logic is unchanged — it posts to
+   /api/auth/login and redirects on success. Only the presentation is new. */
+
+const POINTS: { icon: IconName; copy: string }[] = [
+  { icon: "radar", copy: "Watch the channels you choose, not a discovery feed." },
+  { icon: "scissors", copy: "Every candidate arrives scored, with the reasons attached." },
+  { icon: "check", copy: "Nothing renders or exports without your approval." },
+];
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent): Promise<void> {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setError(data.error || "login failed");
+        return;
+      }
+      window.location.href = "/";
+    } catch {
+      setError("network error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="relative min-h-screen">
+      <div className="mx-auto grid min-h-screen w-full max-w-[1100px] items-center gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-16 lg:py-16">
+        {/* ── Brand side ───────────────────────────────────────── */}
+        <section className="order-2 lg:order-1">
+          <div className="mb-5 flex items-center gap-3">
+            <span
+              className="grid h-10 w-10 place-items-center rounded-[11px] border border-[var(--red-line)] text-[13px] font-semibold text-white"
+              style={{
+                fontFamily: "Sora, Inter, sans-serif",
+                background: "linear-gradient(160deg, rgba(225,6,0,0.55), rgba(120,4,0,0.25))",
+                boxShadow: "0 0 0 1px rgba(255,255,255,0.05) inset, 0 12px 30px -16px rgba(225,6,0,0.9)",
+              }}
+            >
+              SE
+            </span>
+            <div>
+              <p className="text-[13.5px] font-medium leading-tight text-[var(--text)]">Street Ethics</p>
+              <p className="kicker mt-1 block">Clip Engine</p>
+            </div>
+          </div>
+
+          <div className="mb-4 flex items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="h-[2px] w-7 rounded-full"
+              style={{ background: "var(--red)", boxShadow: "0 0 12px rgba(225,6,0,0.7)" }}
+            />
+            <span className="kicker">Sign in</span>
+          </div>
+
+          <h1 className="hero-title-display text-[34px] leading-[1.04] text-[var(--text)] sm:text-[46px]">
+            Catch the moment.
+            <br />
+            <span className="text-[var(--red-hi)]">Ship the clip.</span>
+          </h1>
+          <p className="mt-4 max-w-[46ch] text-[14px] leading-relaxed text-[var(--muted)]">
+            One pipeline for monitoring, cutting, approving, and exporting. Start at the Command Center
+            and work left to right.
+          </p>
+
+          <ul className="mt-7 space-y-3 border-t border-[var(--line)] pt-6">
+            {POINTS.map((p) => (
+              <li key={p.copy} className="flex items-start gap-3">
+                <span className="mt-[1px] grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-[var(--line-2)] bg-white/[0.03] text-[var(--muted)]">
+                  <Icon name={p.icon} size={14} />
+                </span>
+                <span className="text-[12.5px] leading-relaxed text-[var(--muted)]">{p.copy}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* ── Form side ────────────────────────────────────────── */}
+        <section className="order-1 lg:order-2">
+          <div className="panel-3d p-6 sm:p-7">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[16px] font-semibold text-[var(--text)]">Welcome back</h2>
+                <p className="mt-1 text-[12.5px] text-[var(--muted)]">Use your workspace account.</p>
+              </div>
+              <span className="chip chip-demo">demo build</span>
+            </div>
+
+            <form onSubmit={submit} className="mt-6 space-y-4">
+              <label className="block">
+                <span className="label mb-1.5 block">Email</span>
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  aria-invalid={error ? true : undefined}
+                  className="field"
+                  placeholder="you@studio.com"
+                />
+              </label>
+
+              <label className="block">
+                <span className="label mb-1.5 block">Password</span>
+                <input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  aria-invalid={error ? true : undefined}
+                  className="field"
+                  placeholder="••••••••"
+                />
+              </label>
+
+              {error ? (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-lg border border-[var(--red-line)] bg-[var(--red-soft)] px-3 py-2.5"
+                >
+                  <Icon name="info" size={14} className="mt-[1px] shrink-0 text-[var(--red-hi)]" />
+                  <p className="text-[12px] leading-relaxed text-[#ffb4b0]">{error}</p>
+                </div>
+              ) : null}
+
+              <button type="submit" disabled={busy} className="btn btn-primary w-full">
+                {busy ? "Signing in…" : "Sign in"}
+                {busy ? null : <Icon name="arrow" size={15} />}
+              </button>
+            </form>
+
+            <div className="mt-5 border-t border-[var(--line)] pt-4">
+              <Link href="/" className="btn btn-quiet w-full !h-9 !text-[12.5px]">
+                Back to Command Center
+              </Link>
+            </div>
+          </div>
+
+          <p className="mt-4 px-1 text-[11px] leading-relaxed text-[var(--faint)]">
+            Sessions are stored server-side. If sign-in fails with a connection error, the database is
+            not reachable — that is an environment issue, not a wrong password. There are no working
+            credentials in this build.
+          </p>
+        </section>
+      </div>
+    </main>
+  );
+}

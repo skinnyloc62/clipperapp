@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "src/app/api/uploads/route.ts": { "maxDuration": 60, "memory": 1024 },
+    "src/app/api/uploads/token/route.ts": { "maxDuration": 60, "memory": 1024 },
+    "src/app/api/clips/validate/route.ts": { "maxDuration": 60, "memory": 1024 },
+    "src/app/api/mcp/route.ts": { "maxDuration": 60, "memory": 1024 }
+  }
+}

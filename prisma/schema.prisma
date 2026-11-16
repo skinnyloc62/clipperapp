@@ -1,0 +1,139 @@
+// Phase 1 data model (Section 1: schema only, no DB connection yet).
+// Maps to build-contract entities: users, brand_profiles->BrandSetting,
+// media_assets->MediaAsset, clips->ClipProject, clip_highlights->Transcript segments,
+// renders->RenderJob. ProcessingLog covers Section 2 job logging.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  // scrypt hash (`saltHex:derivedHex`) for independent logins. NULL = login disabled.
+  passwordHash String?
+  createdAt    DateTime @default(now())
+
+  brandSetting BrandSetting?
+  mediaAssets  MediaAsset[]
+  clipProjects ClipProject[]
+}
+
+model BrandSetting {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logoUrl      String?
+  primaryColor String   @default("#ffffff")
+  captionStyle String   @default("bottom")
+  watermarkText String?
+  updatedAt    DateTime @updatedAt
+}
+
+enum AssetStatus {
+  uploaded
+  validated
+  invalid
+}
+
+model MediaAsset {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blobUrl     String
+  bytes       Int
+  durationSec Float?
+  codec       String?
+  width       Int?
+  height      Int?
+  status      AssetStatus @default(uploaded)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  clipProjects ClipProject[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum ClipStatus {
+  pending
+  cut
+  approved
+  rejected
+}
+
+model ClipProject {
+  id        String     @id @default(cuid())
+  assetId   String
+  asset     MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startSec  Float
+  endSec    Float
+  clipUrl   String?
+  status    ClipStatus @default(pending)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  transcripts Transcript[]
+  renderJobs  RenderJob[]
+
+  @@index([assetId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Transcript {
+  id            String      @id @default(cuid())
+  clipProjectId String
+  clipProject   ClipProject @relation(fields: [clipProjectId], references: [id], onDelete: Cascade)
+  // Full text once ASR lands (Section 3); NULL while stub.
+  text          String?
+  // JSON array of {startSec,endSec,label,score} highlight segments (stub in Section 1).
+  segmentsJson  String      @default("[]")
+  source        String      @default("stub")
+  createdAt     DateTime    @default(now())
+
+  @@index([clipProjectId])
+}
+
+enum JobStatus {
+  queued
+  running
+  done
+  failed
+}
+
+model RenderJob {
+  id            String      @id @default(cuid())
+  clipProjectId String
+  clipProject   ClipProject @relation(fields: [clipProjectId], references: [id], onDelete: Cascade)
+  renderUrl     String?
+  preset        String      @default("vertical-1080x1920-stub")
+  status        JobStatus   @default(queued)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  logs ProcessingLog[]
+
+  @@index([clipProjectId])
+  @@index([status])
+}
+
+model ProcessingLog {
+  id          String    @id @default(cuid())
+  renderJobId String?
+  renderJob   RenderJob? @relation(fields: [renderJobId], references: [id], onDelete: Cascade)
+  level       String    @default("info")
+  message     String
+  createdAt   DateTime  @default(now())
+
+  @@index([renderJobId])
+}

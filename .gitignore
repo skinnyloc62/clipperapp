@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+dist/
+/.data/
+*.local
+.env*
+!.env.example
+renders/
+*.mp4
+!fixtures/sample-30s.mp4
+.vercel
+*.tsbuildinfo

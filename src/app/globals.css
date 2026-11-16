@@ -1,0 +1,521 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   Street Ethics Clip Engine — design tokens
+   Dark charcoal, hairline structure, one restrained red accent.
+   Red is a signal, never decoration: active nav, primary action,
+   live alert, focus. Everything else stays quiet.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --bg: #08080a;
+  --bg-elev: #0d0d10;
+  --panel: #111114;
+  --panel-2: #16161a;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-2: rgba(255, 255, 255, 0.12);
+  --text: #ececef;
+  --muted: #91919c;
+  --faint: #62626d;
+
+  --red: #e10600;
+  --red-hi: #ff2b24;
+  --red-soft: rgba(225, 6, 0, 0.14);
+  --red-line: rgba(225, 6, 0, 0.34);
+
+  --green: #3ddc97;
+  --amber: #e8a33d;
+  --blue: #6f8cff;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.8);
+  --shadow-2: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 50px -20px rgba(0, 0, 0, 0.95);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "ss01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  min-height: 100vh;
+}
+
+/* Ambient light: a single cold wash top-left, a whisper of red top-right.
+   Fixed so it never scrolls with content (no parallax jank on mobile). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 480px at 8% -12%, rgba(120, 140, 200, 0.08), transparent 70%),
+    radial-gradient(720px 420px at 100% -8%, rgba(225, 6, 0, 0.09), transparent 72%);
+}
+
+/* Hairline grid — structure without noise. Masked out fast. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 78%);
+}
+
+::selection {
+  background: rgba(225, 6, 0, 0.32);
+  color: #fff;
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+
+.font-display {
+  font-family: "Sora", "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.hero-title {
+  font-family: "Sora", "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+.hero-title-display {
+  font-family: "Sora", "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+}
+
+.hero-title .glow {
+  color: var(--red-hi);
+}
+
+.kicker {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.label {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.num {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.score-glow {
+  color: var(--text);
+}
+
+.sec-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+.sec-head::before {
+  content: "";
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--red);
+  box-shadow: 0 0 10px rgba(225, 6, 0, 0.6);
+  flex: none;
+}
+
+/* ── Surfaces ───────────────────────────────────────────────── */
+
+.panel-3d {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 120px),
+    var(--panel);
+  box-shadow: var(--shadow-2);
+  transform: translateZ(0);
+}
+
+.card {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent 160px), var(--panel);
+  box-shadow: var(--shadow-1);
+}
+
+.card-quiet {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.divide-line > * + * {
+  border-top: 1px solid var(--line);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .lift-3d {
+    transition:
+      transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .lift-3d:hover {
+    transform: translateY(-2px);
+    border-color: var(--line-2);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.05) inset,
+      0 26px 60px -26px rgba(0, 0, 0, 1),
+      0 0 0 1px rgba(225, 6, 0, 0.08);
+  }
+}
+
+/* ── Buttons ────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.btn:hover {
+  background: rgba(255, 255, 255, 0.075);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  border-color: transparent;
+  background: linear-gradient(180deg, #f01210, #c50500);
+  color: #fff;
+  font-weight: 600;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 8px 22px -10px rgba(225, 6, 0, 0.9);
+}
+.btn-primary:hover {
+  background: linear-gradient(180deg, #ff2019, #d40600);
+  border-color: transparent;
+}
+
+.btn-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+.btn-quiet:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  border-color: transparent;
+}
+
+/* legacy alias */
+.btn-3d-red {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 8px 22px -10px rgba(225, 6, 0, 0.9);
+}
+
+/* ── Chips & badges ─────────────────────────────────────────── */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.03);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.chip-demo {
+  border-color: rgba(232, 163, 61, 0.28);
+  background: rgba(232, 163, 61, 0.09);
+  color: #e8b563;
+}
+.chip-live {
+  border-color: rgba(61, 220, 151, 0.28);
+  background: rgba(61, 220, 151, 0.1);
+  color: #62e6ae;
+}
+.chip-red {
+  border-color: var(--red-line);
+  background: var(--red-soft);
+  color: #ff6b63;
+}
+.chip-warn {
+  border-color: rgba(232, 163, 61, 0.28);
+  background: rgba(232, 163, 61, 0.09);
+  color: #e8b563;
+}
+
+.glow-live {
+  box-shadow: 0 0 0 1px rgba(61, 220, 151, 0.2), 0 0 18px -4px rgba(61, 220, 151, 0.5);
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(61, 220, 151, 0.9);
+  flex: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-dot {
+    animation: se-pulse 2s ease-in-out infinite;
+  }
+  @keyframes se-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+}
+
+/* ── Sidebar navigation ─────────────────────────────────────── */
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  height: 40px;
+  padding: 0 11px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 450;
+  color: var(--muted);
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text);
+}
+.nav-item[data-active="true"] {
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--text);
+  font-weight: 500;
+}
+.nav-item[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: 50%;
+  width: 2px;
+  height: 18px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: var(--red);
+  box-shadow: 0 0 10px rgba(225, 6, 0, 0.8);
+}
+.nav-item svg {
+  opacity: 0.72;
+  flex: none;
+}
+.nav-item[data-active="true"] svg {
+  opacity: 1;
+  color: var(--red-hi);
+}
+
+/* ── Forms ──────────────────────────────────────────────────── */
+
+.field {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+.field::placeholder {
+  color: var(--faint);
+}
+.field:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.field:focus {
+  border-color: var(--red-line);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 0 3px rgba(225, 6, 0, 0.12);
+}
+
+/* ── Focus visibility ───────────────────────────────────────── */
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* ── Help panel ─────────────────────────────────────────────── */
+
+.help-panel {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  /* Near-opaque on purpose: the space backdrop's wireframe edges and comet
+     glow were rendering straight through the body copy at ~1.5% fill. */
+  background:
+    linear-gradient(180deg, rgba(111, 140, 255, 0.06), transparent 70%),
+    rgba(17, 17, 20, 0.94);
+  padding: 14px 16px;
+}
+.help-panel::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(111, 140, 255, 0.7), rgba(111, 140, 255, 0.08));
+}
+
+/* ── Progress / meters ──────────────────────────────────────── */
+
+.meter {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8f0400, var(--red-hi));
+}
+
+/* ── Radar scope ────────────────────────────────────────────── */
+
+.radar-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 74, 58, 0.34) 0deg,
+    rgba(225, 6, 0, 0.13) 26deg,
+    rgba(225, 6, 0, 0.04) 48deg,
+    rgba(225, 6, 0, 0) 72deg,
+    rgba(0, 0, 0, 0) 360deg
+  );
+  mix-blend-mode: screen;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .radar-sweep {
+    animation: se-sweep 7s linear infinite;
+  }
+  @keyframes se-sweep {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+/* ── Scrollbars ─────────────────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: content-box;
+}
+
+/* ── Motion safety ──────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

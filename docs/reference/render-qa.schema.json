@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "title": "HGE Clip Render QA",
+  "required": [
+    "source_id",
+    "status",
+    "checks",
+    "tested_at"
+  ],
+  "properties": {
+    "source_id": {
+      "type": "string"
+    },
+    "clip_asset_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "REVISE",
+        "BLOCK",
+        "NOT_TESTED"
+      ]
+    },
+    "tested_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "status"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_TESTED",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "details": {
+            "type": "string"
+          },
+          "timestamp_seconds": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "rights_status": {
+      "enum": [
+        "verified",
+        "needs_review",
+        "blocked",
+        "unknown"
+      ]
+    },
+    "approved_by": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

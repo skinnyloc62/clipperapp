@@ -1,0 +1,15 @@
+{
+  "name": "section-1-sample",
+  "description": "Manifest for the Section 1 sample fixture. Generate the actual mp4 locally with scripts/make-sample-mp4.sh (no binaries committed).",
+  "video": {
+    "file": "sample-30s.mp4",
+    "durationSec": 30,
+    "resolution": "1280x720",
+    "codec": "h264",
+    "generate": "scripts/make-sample-mp4.sh"
+  },
+  "acceptance": {
+    "upload": "POST /api/uploads with multipart file=sample-30s.mp4 -> 200 {assetId}",
+    "validate": "POST /api/clips/validate {assetId, filePath} -> 200 {valid:true, durationSec:~30}"
+  }
+}

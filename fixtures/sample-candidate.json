@@ -1,0 +1,26 @@
+{
+  "source_id": "src_EXAMPLE_only",
+  "campaign_id": null,
+  "start_seconds": 132.0,
+  "end_seconds": 174.0,
+  "transcript_excerpt": "ILLUSTRATIVE, replace with exact source words",
+  "hook": "Example reaction moment with real payoff",
+  "why_it_works": "Clear setup and payoff, based on hypothetical transcript",
+  "score": 87,
+  "score_breakdown": {
+    "hook": 19,
+    "clarity": 17,
+    "payoff": 18,
+    "novelty": 13,
+    "emotion": 9,
+    "fit": 8,
+    "technical": 3
+  },
+  "rights_status": "needs_review",
+  "campaign_eligibility": "unknown",
+  "warnings": [
+    "not_real_media",
+    "requires_rights_and_brief"
+  ],
+  "recommended_action": "queue_human_review"
+}

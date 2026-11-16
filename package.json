@@ -1,0 +1,39 @@
+{
+  "name": "clip-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Section 1 scaffold: Vercel-first clip pipeline (upload + FFmpeg validate stub + dashboard shell)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "postinstall": "prisma generate",
+    "start": "next start",
+    "test": "node --test tests/*.test.mjs",
+    "db:push": "prisma db push",
+    "db:seed": "node --env-file-if-exists=.env prisma/seed.mjs",
+    "fixture": "bash scripts/make-sample-mp4.sh",
+    "fixture:big": "bash scripts/make-big-mp4.sh"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@prisma/client": "6.4.1",
+    "@vercel/blob": "^2.9.0",
+    "iron-session": "8.0.4",
+    "next": "^15.5.29",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "zod": "3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/react": "19.0.8",
+    "autoprefixer": "10.4.20",
+    "postcss": "8.4.49",
+    "prisma": "6.4.1",
+    "tailwindcss": "3.4.17",
+    "typescript": "5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

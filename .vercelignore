@@ -1,0 +1,17 @@
+# Never upload local secrets or local-only dev state to a deployment.
+# Env values must come from Vercel project settings, not from local files.
+.env
+.env.*
+!.env.example
+
+# Local dev database / asset registry (writes to disk, not valid on serverless)
+.data/
+
+# Generated media in local dev
+renders/
+*.mp4
+!fixtures/
+
+# Local tooling output
+.next/
+node_modules/
