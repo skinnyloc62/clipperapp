@@ -2,11 +2,24 @@
 
 ## 2026-11-16 checkpoint — approximately 85% of requested creator workflow
 
-The hosted creator workflow and Electron review changes are implemented in the
-working tree but **not deployed**. Do not describe the live Vercel site as having
-these features yet. The Electron app was repackaged and installed after the
-latest caption fix. The Dean watchlist was emptied at the owner's request; do
-not restart it.
+The hosted creator workflow is deployed at `https://clip-mvp.vercel.app` from
+commit `98db33d`; the Electron review changes are installed in `/Applications`.
+The percentage is a scope estimate, not a viral-success prediction. The Dean
+watchlist was emptied at the owner's request; do not restart it.
+
+Live production checks: anonymous `/` returned 307 to `/login`, `/login` 200,
+saved owner access-code login 200, and all seven authenticated pages returned
+200 with all seven workspace links. A real 17.1 MB Dean source uploaded from
+the production browser to Blob, queued a 10-second job, and the Mac worker
+produced a 5,167,908-byte vertical MP4. The job appeared in Approvals.
+Approving it made Clips show two published items; its download returned 302 to
+Blob and Blob HEAD returned 200 `video/mp4`. An unapproved render returned 404.
+The temporary QA item was then denied; Clips returned to one published item,
+and the denied download returned 404. A separate browser upload of an
+eight-second owner music excerpt produced a completed render with
+`musicApplied=true`; it was denied after testing. Two prior QA jobs were also
+denied, leaving Approvals empty. At a 390px viewport, the mobile drawer showed
+all seven links with no horizontal overflow. A physical iPhone was not tested.
 
 Verified so far: TypeScript exit 0, 29/29 tests pass, Next production build exit
 0, Electron packaging/install exit 0, Prisma schema push to real Neon exit 0.
@@ -28,19 +41,22 @@ musicApplied true. Earlier attempts failed because looping caption images had
 no output duration and the many-input render timed out; the single
 RGBA track and explicit duration resolved that. The title remains editable.
 
-Working-tree additions: authenticated direct-to-Blob browser upload and source
+Shipped additions: authenticated direct-to-Blob browser upload and source
 picker, manual start/end selection, optional music upload, queued edit jobs,
 hosted review with Approve/Deny and editable title, all seven hosted navigation
 items with truthful page content, plus Electron local caption/title/music
 finishing on approval. The Mac worker, not Vercel, performs FFmpeg jobs. R2 is
 not needed for this implementation.
 
-Remaining before completion: push the checked release, then test a real hosted
-browser upload, Approve/Deny, download behavior, all seven pages, and mobile
-navigation against production. The hosted music upload still needs an actual
-browser test. TypeScript, 29/29 tests, build, Electron package, and the RLS
-query have passed; seven tables retain RLS with zero public grants. Update the
-deployment result in HANDOFF and JARVIS. Never print or commit credentials.
+Remaining scope: automatic viral scoring from actual footage/transcripts is not
+implemented or validated; the detector still uses audio energy. The hosted
+Editor marks one range of up to 60 seconds per job, not a general long-form
+timeline. Whisper captions need owner review and are absent when speech is not
+clear; the new browser QA clip had no usable captions, while a separate real
+worker QA render showed visible captions. The Mac must be awake and online for
+hosted jobs to finish. Blob media URLs are public to anyone who has the URL.
+TypeScript, 29/29 tests, build, Electron package, and the RLS query passed;
+seven tables retain RLS with zero public grants. Never print or commit credentials.
 
 Resume from `docs/STUDIO_PLAN.md`, `scripts/studio-worker.mjs`, and
 `src/app/api/clips/enrich/route.ts`. The worker's private environment file is
@@ -63,10 +79,11 @@ so it must be online for jobs to finish. The live watcher remains separate.
 Do not label captions or title suggestions as complete until their real
 transcript/render artifacts are checked.
 
-## 2026-11-16 hosted viewer and manual mark update
+## 2026-11-16 earlier hosted viewer and manual mark update
 
-The live Mac watcher is still the only cutter. Vercel is a session-gated viewer
-for clips approved and published from the Mac.
+At this earlier checkpoint, the Mac watcher was the only cutter and Vercel was
+a session-gated viewer. The creator studio update above supersedes that hosted
+scope. The Mac still performs all FFmpeg work.
 
 Verified locally and against provisioned cloud resources:
 

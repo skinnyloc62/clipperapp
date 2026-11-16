@@ -2,9 +2,22 @@
 
 2026-11-16 checkpoint: approximately **85%** of the new owner request is done.
 This percentage is an estimate of implementation and proof, not a measured
-viral-success rate. The changes are in the `clip-mvp` working tree and not yet
-deployed. The live Vercel site still has the old viewer menu. Do not claim the
-new hosted upload/editor/review flow is live until verified there.
+viral-success rate. Commit `98db33d` deployed the creator studio to
+`https://clip-mvp.vercel.app`, and the installed Electron app has the local
+review changes. The Dean watchlist remains empty at the owner's request.
+
+Live production verification: anonymous `/` 307 to `/login`; `/login` 200;
+saved owner access-code login 200; all seven authenticated pages 200 with seven
+menu links. A real 17.1 MB Dean video uploaded through the production browser
+and became a 10-second vertical Mac render in Approvals. Approve exposed the
+5,167,908-byte MP4 in Clips; download 302 to Blob, Blob HEAD 200. An
+unapproved render returned 404. Denying the temporary QA clip removed it from
+Clips and changed its download to 404. A separate browser job uploaded an
+eight-second excerpt of owner-provided music and completed with
+`musicApplied=true`. At 390px width the phone-size drawer showed all seven
+links with no horizontal overflow. Test QA review jobs were denied; Approvals
+now has a truthful empty state. One earlier real Dean test clip stays published
+and is labeled as a non-viral test. A physical iPhone has not been tested.
 
 Code now includes all seven hosted workspace pages, direct browser-to-Vercel
 Blob upload, manual video range selection, title editing, an optional music
@@ -27,11 +40,13 @@ Proof already obtained: `npx tsc --noEmit` exit 0, `npm test` 29/29,
 exit 0. LaunchAgent `com.streetethics.studio-worker` is running. Dean's
 watchlist is empty and recording stopped at the owner's request; leave it off.
 
-Next: push the checked release; test actual hosted browser upload, review,
-download, music upload, and mobile navigation with a real login. TypeScript,
-29/29 tests, Next build, Electron package, and Neon RLS query passed. Read
-`docs/STUDIO_PLAN.md` for the detailed
-plan. Never print secrets or database URLs.
+Remaining: real footage/transcript-based viral scoring, a general long-video
+timeline, and physical iPhone QA. The production browser upload had no usable
+speech captions; another real worker render showed captions. Whisper output
+still needs human review. Mac studio worker must remain awake and connected to
+process hosted jobs. TypeScript, 29/29 tests, Next build, Electron package,
+and Neon RLS query passed before deployment. Read `docs/STUDIO_PLAN.md` for
+the detailed plan. Never print secrets or database URLs.
 
 New owner direction on 2026-11-16: expand the hosted site from viewer to
 creator. Girlfriend should upload long videos and select clip ranges on her
@@ -41,12 +56,13 @@ music. Deny should remove the item from the active queue without pretending
 that media analysis ran. The owner stopped Dean live monitoring; leave it
 stopped. Existing Blob + Neon are enough for MVP; R2 is optional later if
 storage/egress costs justify it. FFmpeg jobs need a separate worker, initially
-on the Mac, not a Vercel function. This work is in progress and not deployed.
+on the Mac, not a Vercel function. The deployed result is documented above.
 
 2026-11-16: The active repository is `/Users/homegrownentllc/clip-mvp`.
 The installed Electron app lives in `/Applications` and its Desktop icon is a
-shortcut. The Mac watcher alone records and cuts Kick video. The hosted Vercel
-site is a viewer for approved published clips.
+shortcut. At this earlier checkpoint, the Mac watcher alone recorded and cut
+Kick video, and the hosted site was a viewer. The creator workflow above
+supersedes that hosted scope.
 
 Cloud setup verified: Neon Postgres schema pushed; all seven tables have RLS
 enabled, zero policies, and no public SELECT. Vercel Blob is connected. The
@@ -82,7 +98,7 @@ each opened `/clips` with 200. The real test clip was present. Its approved
 render returned 302 to Blob. The same render returned 404 while the test clip
 was temporarily unapproved; approval was restored.
 
-No hosted cutting or automatic viral scoring exists. The most likely next
-failure is the Mac watcher stopping; the hosted site has no cutter. Blob URLs
+No Vercel FFmpeg cutting or automatic viral scoring exists. The most likely next
+failure is the Mac worker stopping; the hosted site has no FFmpeg cutter. Blob URLs
 are public to anyone holding the URL. The song-preview edit remains a local
 draft, unpublished.

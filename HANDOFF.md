@@ -1,9 +1,9 @@
 # Handoff — Street Ethics Clip Engine / HGE Clippers
 
-## Creator studio update — 2026-11-16 (deployment verification pending)
+## Creator studio update — 2026-11-16 (deployed and live-verified)
 
 The owner expanded the hosted product from a viewer to a creator workflow.
-The working tree now has all seven workspace pages on Vercel: Command Center,
+Production now has all seven workspace pages on Vercel: Command Center,
 Live Radar, Clip Inbox, Editor, Approvals, Earnings, and Settings. The hosted
 Editor accepts a long video from a laptop or iPhone directly into Vercel Blob,
 lets the owner mark a range of at most 60 seconds, optionally attach an audio
@@ -27,8 +27,8 @@ The studio worker is a persistent LaunchAgent named
 in the app's Library/Application Support directory. It processed a new real
 10-second job from the previously uploaded Dean source after the single-track
 caption fix. The 1080x1920 Blob render was 4,911,611 bytes with visible, single
-caption lines. That and two earlier worker QA jobs remain unpublished, pending
-owner review. The worker requires this Mac awake and connected to Neon/Blob.
+caption lines. Those worker QA jobs were denied after testing and are no longer
+in the review queue. The worker requires this Mac awake and connected to Neon/Blob.
 There is no verified automatic viral prediction or general long-form timeline
 editing. Titles are suggestions for human review; Whisper can mishear speech.
 
@@ -41,9 +41,27 @@ Before deployment, local checks passed: TypeScript exit 0, 29/29 tests,
 Next production build exit 0, Electron package/install exit 0, and
 `git diff --check` exit 0. After the schema update, a real Neon query found
 all seven tables with RLS enabled, zero policies, and zero public grants.
-Production browser upload, hosted review/download, and mobile navigation still
-need a real post-deployment test. Do not call those proven on the strength of
-the build. See `docs/STUDIO_PLAN.md`, `docs/PROGRESS.md`, and
+Commit `98db33d` was pushed to `main`; deployment
+`clip-6iqgmqrq7-team-homegrown.vercel.app` reached Ready. Live checks on the
+stable URL found anonymous `/` 307 to `/login`, `/login` 200, saved owner access
+code login 200, and all seven authenticated pages 200 with seven menu entries.
+The saved code matches the owner's requested PIN without printing it. A real
+17.1 MB Dean video uploaded through the production browser to Blob and queued
+a 10-second Mac render. The resulting 5,167,908-byte MP4 appeared in Approvals.
+Approving it made Clips show two rows; its download returned 302 to a Blob MP4
+whose HEAD returned 200. An unapproved render returned 404. Denying the QA
+clip returned Clips to one row and made its download return 404. A separate
+hosted job uploaded an eight-second excerpt of owner-provided music and
+finished with `musicApplied=true`. The 390px mobile browser showed the full
+seven-item drawer with no horizontal overflow. Test-only review jobs were
+denied, leaving a truthful empty Approvals state. The one previously published
+Dean test clip remains visible and is explicitly labeled as non-viral.
+
+This verifies the workflow in a desktop browser at phone width, not on a
+physical iPhone. The production browser job had no usable speech captions;
+another real Mac worker job did have visible captions. No general long-form
+timeline editing or measured viral prediction exists yet. See
+`docs/STUDIO_PLAN.md`, `docs/PROGRESS.md`, and
 `JARVIS/.progress/journal.md` for the resumable state. Never print credentials.
 
 Original handoff written 2026-11-16 01:12 EST. The verified hosted-viewer
@@ -74,8 +92,9 @@ update below supersedes older "no database / no Blob / no publish path" notes.
   `TEST CLIP - not a viral pick`. Blob HEAD verified the 26,086,952-byte cut
   and 14,565,406-byte render. The source footage is not being called viral.
 - The hosted Clips page now lists approved database rows; the render download
-  route also checks approval. Hosted navigation is viewer-only, and hosted
-  cut/render/validate endpoints return 501. The Mac app keeps local auth bypass.
+  route also checks approval. At this earlier checkpoint, hosted navigation was
+  viewer-only. The creator studio update above supersedes that scope. The Mac
+  app keeps local auth bypass.
 - The Mac Clip Inbox plays local vertical renders before approval. Each card
   has Approve or Deny; `/approvals` opens that real inbox. Local review playback
   uses `/api/previews/<renderId>` with session ownership and byte-range support.
@@ -125,7 +144,7 @@ cd ~/clip-mvp && node scripts/export-clips.mjs           # → ~/Downloads/HGE C
 cd ~/clip-mvp && node scripts/export-clips.mjs /some/dir # → somewhere else
 ```
 
-## What is actually running right now
+## Processes at the original handoff (historical PIDs; check current state)
 
 | Thing | pid | Notes |
 |---|---|---|
