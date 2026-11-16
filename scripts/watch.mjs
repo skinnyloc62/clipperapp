@@ -34,11 +34,15 @@ const CONFIG = {
   ringSec: int("WATCH_RING_SEC", 240),
   preSec: int("WATCH_CLIP_PRE_SEC", 12),
   postSec: int("WATCH_CLIP_POST_SEC", 28),
-  cooldownSec: int("WATCH_SPIKE_COOLDOWN_SEC", 45),
-  spikeDb: int("WATCH_SPIKE_DB", 8),
-  spikeFloorDb: int("WATCH_SPIKE_FLOOR_DB", -34),
+  cooldownSec: int("WATCH_SPIKE_COOLDOWN_SEC", 180),
+  spikeDb: int("WATCH_SPIKE_DB", 9),
+  jumpDb: int("WATCH_JUMP_DB", 6),
+  spikeFloorDb: int("WATCH_SPIKE_FLOOR_DB", -30),
+  spikeConfirmSegments: int("WATCH_SPIKE_CONFIRM_SEGMENTS", 2),
+  localBedSegments: int("WATCH_LOCAL_BED_SEGMENTS", 4),
   baselineSegments: int("WATCH_BASELINE_SEGMENTS", 8),
-  fallbackSec: int("WATCH_FALLBACK_SEC", 180),
+  fallbackSec: int("WATCH_FALLBACK_SEC", 900),
+  fallbackMinDb: int("WATCH_FALLBACK_MIN_DB", -20),
   stallMs: int("WATCH_STALL_MS", 30_000),
   restartBackoffMs: int("WATCH_RESTART_BACKOFF_MS", 5_000),
   restartBackoffMaxMs: int("WATCH_RESTART_BACKOFF_MAX_MS", 60_000),
@@ -193,7 +197,12 @@ function publishMonitor() {
       ringSec: CONFIG.ringSec,
       clipWindowSec: [CONFIG.preSec, CONFIG.postSec],
       spikeDb: CONFIG.spikeDb,
+      jumpDb: CONFIG.jumpDb,
+      spikeFloorDb: CONFIG.spikeFloorDb,
+      spikeConfirmSegments: CONFIG.spikeConfirmSegments,
+      cooldownSec: CONFIG.cooldownSec,
       fallbackSec: CONFIG.fallbackSec,
+      fallbackMinDb: CONFIG.fallbackMinDb,
     },
     totals,
     channels,
@@ -246,6 +255,9 @@ function syncWatchlist() {
         pending: [],
         lastSpikeAt: 0,
         lastCutAt: 0,
+        lastCutAnchorMs: 0,
+        candidate: null,
+        lastFallbackNoteAt: 0,
         liveSince: null,
         lastSegAt: 0,
         restartCount: 0,
@@ -497,22 +509,57 @@ async function ingestSegment(st, file, index) {
   const baseline = median(prior);
   st.mon.baselineDb = prior.length ? round1(baseline) : null;
 
+  // The bed immediately before this segment. A reaction has to jump out of
+  // *this*, not just out of a 40-segment median that already includes it.
+  const localBed = median(prior.slice(-CONFIG.localBedSegments));
+
   // Segments that predate this process only warm the baseline. Re-detecting
   // them would re-cut the same moment on every restart.
   const fresh = index >= st.startIndex;
   if (fresh && rmsDb != null && prior.length >= CONFIG.baselineSegments) {
-    const loud = rmsDb > baseline + CONFIG.spikeDb && rmsDb > CONFIG.spikeFloorDb;
-    const cooled = Date.now() - st.lastSpikeAt > CONFIG.cooldownSec * 1000;
-    if (loud && cooled) {
-      st.lastSpikeAt = Date.now();
-      st.mon.spikes += 1;
-      log(`${st.slug}: spike at seg ${index} — ${round1(rmsDb)} dB vs baseline ${round1(baseline)} dB`);
-      scheduleCut(st, {
-        trigger: "audio-spike",
-        anchorMs: startMs,
-        readyAt: endMs + CONFIG.postSec * 1000 + 2500,
-        evidence: `rms ${round1(rmsDb)} dB > median ${round1(baseline)} dB + ${CONFIG.spikeDb} dB`,
-      });
+    // Two different questions. Over the 40-segment median: is this loud at all
+    // for this stream? Over the last 4 segments: did it *just* change? A
+    // reaction needs both — steady loudness only has the first.
+    const loudEnough = rmsDb > CONFIG.spikeFloorDb;
+    const overBaseline = rmsDb > baseline + CONFIG.spikeDb;
+    const jumped = rmsDb > localBed + CONFIG.jumpDb;
+
+    if (!(loudEnough && overBaseline && jumped)) {
+      // Talking, music bed, silence — not a moment. Drop any half-formed run.
+      st.candidate = null;
+    } else {
+      const prev = st.candidate;
+      const run = prev && prev.lastIndex === index - 1 ? prev.run + 1 : 1;
+      const candidate = {
+        run,
+        lastIndex: index,
+        startMs: run > 1 && prev ? prev.startMs : startMs,
+        rmsDb,
+        baseline,
+        localBed,
+      };
+      st.candidate = candidate;
+
+      // Two cuts inside one loud stretch is one clip's worth of moment, so the
+      // cooldown is measured against the previous cut's anchor, not the clock.
+      const sinceLastMs = candidate.startMs - (st.lastCutAnchorMs || 0);
+      if (run < CONFIG.spikeConfirmSegments) {
+        log(`${st.slug}: candidate at seg ${index} — ${round1(rmsDb)} dB vs bed ${round1(localBed)} dB, needs a second loud segment`);
+      } else if (sinceLastMs < CONFIG.cooldownSec * 1000) {
+        log(`${st.slug}: spike at seg ${index} ignored — ${Math.round(sinceLastMs / 1000)}s after the last cut (cooldown ${CONFIG.cooldownSec}s)`);
+      } else {
+        st.candidate = null;
+        st.lastSpikeAt = Date.now();
+        st.lastCutAnchorMs = candidate.startMs;
+        st.mon.spikes += 1;
+        log(`${st.slug}: sustained spike at seg ${index} — ${run} segs, peak ${round1(rmsDb)} dB vs bed ${round1(localBed)} dB / median ${round1(baseline)} dB`);
+        scheduleCut(st, {
+          trigger: "audio-spike",
+          anchorMs: candidate.startMs,
+          readyAt: endMs + CONFIG.postSec * 1000 + 2500,
+          evidence: `${run} segments running above median ${round1(baseline)} dB + ${CONFIG.spikeDb} dB (bed ${round1(localBed)} dB, peak ${round1(rmsDb)} dB)`,
+        });
+      }
     }
   }
 }
@@ -563,13 +610,26 @@ function pickFallback(st) {
   const scored = st.segs.filter((s) => s.index >= st.startIndex && typeof s.rmsDb === "number" && s.rmsDb > -90);
   if (scored.length < CONFIG.baselineSegments) return;
   const loudest = scored.reduce((best, s) => (s.rmsDb > best.rmsDb ? s : best), scored[0]);
+
+  // A fallback is a consolation prize, not a licence to cut ambient talking.
+  // If the loudest thing in the window is still background noise, cut nothing.
+  if (loudest.rmsDb < CONFIG.fallbackMinDb) {
+    if (Date.now() - st.lastFallbackNoteAt > CONFIG.fallbackSec * 1000) {
+      st.lastFallbackNoteAt = Date.now();
+      log(`${st.slug}: nothing special yet — loudest buffered moment is ${round1(loudest.rmsDb)} dB, needs ${CONFIG.fallbackMinDb} dB for a fallback clip`);
+    }
+    return;
+  }
+  if (loudest.startMs - (st.lastCutAnchorMs || 0) < CONFIG.cooldownSec * 1000) return;
+
+  st.lastCutAnchorMs = loudest.startMs;
   log(`${st.slug}: no spike in ${CONFIG.fallbackSec}s — cutting loudest buffered moment (seg ${loudest.index}, ${round1(loudest.rmsDb)} dB)`);
   st.mon.fallbackCuts += 1;
   scheduleCut(st, {
     trigger: "fallback-loudest",
     anchorMs: loudest.startMs,
     readyAt: Date.now(),
-    evidence: `no spike in ${CONFIG.fallbackSec}s; loudest segment ${round1(loudest.rmsDb)} dB`,
+    evidence: `no spike in ${CONFIG.fallbackSec}s; loudest segment ${round1(loudest.rmsDb)} dB, above the ${CONFIG.fallbackMinDb} dB fallback floor`,
   });
 }
 
@@ -838,8 +898,9 @@ function banner() {
   log(`ffprobe      ${FFPROBE}`);
   log(`segments     ${CONFIG.segmentSec}s into a ${CONFIG.ringSec}s ring (cap ${mb} MB)`);
   log(`clip window  -${CONFIG.preSec}s / +${CONFIG.postSec}s around the loudest moment`);
-  log(`spike rule   > median + ${CONFIG.spikeDb} dB and > ${CONFIG.spikeFloorDb} dBFS, ${CONFIG.cooldownSec}s cooldown`);
-  log(`fallback     loudest buffered segment after ${CONFIG.fallbackSec}s with no spike`);
+  log(`spike rule   +${CONFIG.spikeDb} dB over the median AND +${CONFIG.jumpDb} dB over the last ${CONFIG.localBedSegments} segs, > ${CONFIG.spikeFloorDb} dBFS, held ${CONFIG.spikeConfirmSegments} segs`);
+  log(`cooldown     ${CONFIG.cooldownSec}s between cut anchors — one loud stretch makes one clip`);
+  log(`fallback     loudest buffered segment after ${CONFIG.fallbackSec}s with no spike, and only above ${CONFIG.fallbackMinDb} dBFS`);
   log(`polling      kick.com every ${CONFIG.pollMs / 1000}s`);
 }
 

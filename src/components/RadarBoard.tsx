@@ -353,7 +353,7 @@ export default function RadarBoard({ initial }: { initial: RadarInitial }) {
             </div>
             <p className="mt-2 max-w-[62ch] text-[13px] leading-relaxed text-[var(--muted)]">
               {worker.running
-                ? "The watcher reads this watchlist every 15 seconds, records the live stream in 4-second segments, and cuts a clip when the audio spikes above its rolling baseline. Everything below is read from the files it writes."
+                ? "The watcher reads this watchlist every 15 seconds, records the live stream in 4-second segments, and cuts a clip only when the audio holds a jump above the stream's own baseline. One loud stretch makes one clip. Everything below is read from the files it writes."
                 : "The watcher process is not writing a heartbeat, so nothing is being recorded. Start it from the project folder — the last values stay visible but are marked as stale."}
             </p>
             <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-[var(--line)] pt-4 sm:grid-cols-4">

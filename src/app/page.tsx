@@ -34,7 +34,7 @@ const STAGES: Stage[] = [
     n: "02",
     title: "Detect",
     icon: "spark",
-    body: "Audio spikes above a rolling baseline get scored into clip candidates.",
+    body: "A sustained jump above the stream's own audio bed gets scored into a clip candidate.",
     href: "/clips",
   },
   {
@@ -153,7 +153,7 @@ function ScopePanel({ readable, watching }: { readable: boolean; watching: boole
           ],
           [
             "Clip detection",
-            watching ? "Running on this machine — audio spikes against a rolling baseline." : "Idle. Start the watcher to detect anything.",
+            watching ? "Running on this machine — a clip needs a sustained jump above the stream's audio bed." : "Idle. Start the watcher to detect anything.",
           ],
           [
             "Channels & viewers",

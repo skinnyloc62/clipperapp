@@ -21,6 +21,15 @@ export default function RadarPage() {
   const channels = listChannels();
   const clips = clipCountsByChannel();
 
+  // Read the detector's real thresholds out of monitor.json so this screen
+  // can never describe a rule the watcher is not actually running.
+  const tune = snap?.config;
+  const spikeDb = tune?.spikeDb ?? 9;
+  const jumpDb = tune?.jumpDb ?? 6;
+  const spikeFloorDb = tune?.spikeFloorDb ?? -30;
+  const confirmSegs = tune?.spikeConfirmSegments ?? 2;
+  const cooldownSec = tune?.cooldownSec ?? 180;
+
   const worker = {
     running: monitorRunning(snap),
     ageSec: monitorAgeSec(snap),
@@ -75,7 +84,7 @@ export default function RadarPage() {
             },
             {
               label: "Signal",
-              body: "A rolling median of the stream's audio level, with the current level plotted against it. A spike is +8 dB over that baseline and louder than -34 dBFS.",
+              body: `A rolling median of the stream's audio level, plus the level of the four seconds just before. A clip is cut only when the audio is ${spikeDb} dB over that median, ${jumpDb} dB over the moment before it, louder than ${spikeFloorDb} dBFS, and holds for ${confirmSegs} segments in a row. Then nothing new for ${cooldownSec}s — one loud stretch makes one clip, not three.`,
             },
             {
               label: "Clips",

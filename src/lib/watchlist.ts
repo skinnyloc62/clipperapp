@@ -64,7 +64,12 @@ export interface MonitorSnapshot {
     ringSec: number;
     clipWindowSec: [number, number];
     spikeDb: number;
+    jumpDb?: number;
+    spikeFloorDb?: number;
+    spikeConfirmSegments?: number;
+    cooldownSec?: number;
     fallbackSec: number;
+    fallbackMinDb?: number;
   };
   totals: { channels: number; live: number; recording: number; spikes: number; clips: number };
   channels: Record<string, ChannelMonitor>;
