@@ -1,5 +1,40 @@
 # Handoff — Street Ethics Clip Engine / HGE Clippers
 
+## MyreshaTV live test and title fix — 2026-11-17
+
+The owner asked to test `kick.com/myreshatv` during a GTA 5 club scene. Kick
+reported it live; the Mac Radar added it with HTTP 201 and the watcher reported
+live=true, recording=1. It is the only watched channel. Dean remains off. A
+real captured frame showed the crowded GTA club and Myresha's facecam. A manual
+live mark returned 201 and produced a 40.018-second 1080x1920 render. The
+audio/speech scout withheld a score (`no_strong_verified_candidate`) because
+the transcript was uncertain; that result does not judge the visual joke. The
+audio spike detector had made no automatic cut for this scene at the checkpoint.
+
+The title field previously saved metadata without putting words on the video.
+Local approval and hosted Mac renders now burn an owner title into the first
+3.5 seconds. If a hosted title changes after rendering, the title route queues
+a new render before approval. A real local Myresha approval returned 200,
+`titleApplied=true`, QA PASS, 1080x1920, 40.033s, and 14,967,935 bytes; a
+frame at one second visibly showed `GTA CLUB WAS THE REAL MISSION`. Its local
+download returned 200 with the full MP4. A 22-second, 8,617,928-byte test edit
+is in `~/Downloads/HGE Clips/test-edits/2026-11-17_myreshatv_gta-club_22s_title-test_vertical.mp4`.
+No speech captions or added music were used; club audio was retained. This
+approved local test is not published to Vercel.
+
+A real 40-second Myresha source uploaded through the hosted browser, and the
+Mac worker made a 22-second draft. The first hosted frame showed the title but
+revealed an old center crop hiding the facecam. The worker now preserves the
+full wide stream in the center over a blurred 9:16 background. Changing the
+hosted draft title through `/api/studio/title` returned 200 with
+`rebuilding=true`; the worker finished the new render, and its one-second frame
+showed both the new title `GTA CLUB BECAME THE MAIN EVENT` and the facecam.
+`/approvals` returned 200 with that draft; `/clips` returned 200 with its empty
+state. The hosted draft is awaiting owner approval and is not published.
+TypeScript, 32 tests, Next build, Electron package/install, direct FFmpeg layout
+check, and the real local/hosted title renders passed. A measured viral rate
+and reliable visual-only automatic scouting remain unverified.
+
 ## Grounded scout work — 2026-11-16 (deployed and checked)
 
 The owner rejected the saved Dean song-preview segment as boring and says

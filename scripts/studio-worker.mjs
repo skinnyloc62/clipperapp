@@ -139,7 +139,9 @@ async function processJob(job) {
     await exec(ffmpeg, ["-hide_banner", "-loglevel", "error", "-y", "-ss", String(clip.startSec), "-i", asset.blobUrl,
       "-t", String(clip.endSec - clip.startSec), "-c:v", "libx264", "-preset", "veryfast", "-c:a", "aac", "-movflags", "+faststart", wide]);
     const captions = job.captionsEnabled ? await transcribe(wide, dir, job.id) : null;
-    const baseFilter = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920";
+    // Keep the full stream and facecam visible in the central panel. A hard
+    // center crop hid the streamer's reaction in wide Kick footage.
+    const baseFilter = "[0:v]split=2[bg][fg];[bg]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:2[bgb];[fg]scale=1080:-2[fgs];[bgb][fgs]overlay=(W-w)/2:(H-h)/2[v0]";
     let cues = [];
     if (captions) {
       try { cues = await makeCaptionImages(captions.segments, dir); }
@@ -151,7 +153,7 @@ async function processJob(job) {
     if (cues.length) args.push("-f", "concat", "-safe", "0", "-i", await captionTrack(cues, dir, clip.endSec - clip.startSec));
     if (titleCard) args.push("-loop", "1", "-i", titleCard);
     if (job.musicUrl) args.push("-stream_loop", "-1", "-i", job.musicUrl);
-    const filters = [`[0:v]${baseFilter}[v0]`];
+    const filters = [baseFilter];
     if (cues.length) filters.push("[v0][1:v]overlay=(W-w)/2:H-h-100:shortest=1[v1]");
     if (titleCard) filters.push(`[${cues.length ? "v1" : "v0"}][${cues.length ? 2 : 1}:v]overlay=(W-w)/2:105:enable='between(t,0,3.5)'[vtitle]`);
     if (job.musicUrl) filters.push(`[0:a]volume=1[a];[${1 + Number(Boolean(cues.length)) + Number(Boolean(titleCard))}:a]volume=0.12[bg];[a][bg]amix=inputs=2:duration=first:dropout_transition=2[out]`);
@@ -163,7 +165,8 @@ async function processJob(job) {
     catch (error) {
       if (titleCard || (!cues.length && !job.musicUrl)) throw error;
       await log(job.id, "warn", `Optional caption/music mix failed; plain vertical render used: ${cleanError(error)}`);
-      await exec(ffmpeg, ["-hide_banner", "-loglevel", "error", "-y", "-i", wide, "-vf", baseFilter,
+      await exec(ffmpeg, ["-hide_banner", "-loglevel", "error", "-y", "-i", wide,
+        "-filter_complex", baseFilter, "-map", "[v0]", "-map", "0:a?",
         "-c:v", "libx264", "-preset", "veryfast", "-c:a", "aac", vertical]);
       captionsApplied = false;
       musicApplied = false;

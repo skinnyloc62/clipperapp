@@ -20,7 +20,17 @@ with the full byte count. A shorter 22-second 1080x1920 test edit was saved at
 (8,617,928 bytes). No speech captions or extra music were added because the
 speech transcript was unreliable and club audio already exists. This clip is
 approved locally for testing, not published to Vercel. MyreshaTV is still on
-the watchlist; Dean remains off. Hosted title rebuild still needs live QA.
+the watchlist; Dean remains off. A 40-second Myresha source was uploaded from
+the production browser and a 22-second hosted render completed with the title
+visible at one second. That real frame revealed the old hosted center crop hid
+the facecam. The worker now uses a blurred background and the full wide stream
+in the center; a direct 3-second FFmpeg test showed the facecam visible. The
+live hosted title route returned 200 with rebuilding=true; the Mac worker
+completed the new 22-second render. Its one-second frame visibly showed the
+changed title `GTA CLUB BECAME THE MAIN EVENT` and Myresha's facecam. The
+hosted Approvals page returned 200 with this draft, while Clips returned 200
+with the empty state. It awaits owner approval; it was not published. At the
+checkpoint the Mac watcher reported Myresha live/recording and no Dean channel.
 
 2026-11-16 newer grounded-scout checkpoint, release in progress: The owner
 says the saved Dean song preview was the wrong, boring moment and there are

@@ -1,5 +1,32 @@
 # Progress — where this project actually stands
 
+## 2026-11-17 live MyreshaTV and opening-title checkpoint
+
+MyreshaTV is live and recording on the Mac; she is the only watched channel,
+with Dean still off. A manual timestamp made a real 40-second GTA club clip.
+The local scout abstained because speech evidence was weak, even though a
+captured frame showed the crowded GTA club and Myresha's facecam. No automatic
+audio-spike cut was observed for that scene at the checkpoint. The clip is a
+useful visual test, not a measured viral hit.
+
+The owner-reported title bug was real: title edits changed the record but not
+the MP4. The new finishing path burns the opening title for 3.5 seconds.
+Electron package/install exited 0; a real local approval returned HTTP 200,
+titleApplied=true, 1080x1920, 40.033s, and 14,967,935 bytes. Its one-second
+frame showed the title and the download returned HTTP 200 video/mp4. A shorter
+22-second test file is at `~/Downloads/HGE Clips/test-edits/2026-11-17_myreshatv_gta-club_22s_title-test_vertical.mp4`.
+
+On the hosted site, a real Myresha source uploaded through the browser and
+became a 22-second draft. The first frame revealed that the old center crop
+hid her facecam. The Mac worker now keeps the full wide stream over a blurred
+vertical background. A hosted title change returned rebuilding=true and the
+new render visibly showed both the changed title and facecam. Approvals showed
+the draft; Clips stayed empty. Nothing was published. TypeScript, 32 tests,
+Next build, Electron package, and direct FFmpeg QA passed. Speech captions
+were omitted for this segment because the transcript was unreliable; no new
+music was added over the club audio. Visual-only automatic scouting and a
+physical iPhone check remain open.
+
 ## 2026-11-16 grounded scout checkpoint — deployed and checked
 
 The saved Dean song-preview segment is a negative benchmark; the owner says it
