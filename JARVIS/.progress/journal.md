@@ -1,5 +1,27 @@
 # JARVIS progress — Street Ethics Clip Engine
 
+2026-11-17 MyreshaTV live test and title fix checkpoint: Kick reported
+`myreshatv` live (HTTP 200, playback present). The Mac Radar added her channel
+with 201; watcher status showed live=true and recording=1. A captured frame
+visibly showed a crowded GTA roleplay club and the streamer's facecam. The owner
+marked that moment; `/api/live/mark` returned 201 with a real 40.018-second
+vertical render. The local scout returned `no_strong_verified_candidate` and
+no score because speech was uncertain; it did not prove the scene lacks visual
+appeal. The audio spike detector has not automatically cut this scene yet.
+The previous title field saved metadata only. Code now renders a title card in
+the first 3.5 seconds for local approval and hosted Mac renders; a hosted title
+change requeues a completed edit before approval. TypeScript, 32 tests, Next
+build, and Electron package/install exited 0. The installed app approved the
+real Myresha test clip with title `GTA CLUB WAS THE REAL MISSION`: HTTP 200,
+titleApplied=true, QA PASS, 1080x1920, 40.033s, 14,967,935 bytes. A frame at
+one second visibly showed the title, and local download returned 200 video/mp4
+with the full byte count. A shorter 22-second 1080x1920 test edit was saved at
+`~/Downloads/HGE Clips/test-edits/2026-11-17_myreshatv_gta-club_22s_title-test_vertical.mp4`
+(8,617,928 bytes). No speech captions or extra music were added because the
+speech transcript was unreliable and club audio already exists. This clip is
+approved locally for testing, not published to Vercel. MyreshaTV is still on
+the watchlist; Dean remains off. Hosted title rebuild still needs live QA.
+
 2026-11-16 newer grounded-scout checkpoint, release in progress: The owner
 says the saved Dean song preview was the wrong, boring moment and there are
 currently no good clips. The old nonviral published test was denied; hosted

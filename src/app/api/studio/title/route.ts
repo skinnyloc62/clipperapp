@@ -14,9 +14,24 @@ export async function POST(req: Request): Promise<Response> {
   if (!parsed.success) return Response.json({ error: "Title must be 1–100 characters." }, { status: 400 });
   const { clipId, title } = parsed.data;
   if (process.env.VERCEL) {
-    const changed = await getPrisma().clipProject.updateMany({ where: { id: clipId, userId: user.userId, status: { not: "rejected" } }, data: { title } });
-    if (!changed.count) return Response.json({ error: "unknown clip" }, { status: 404 });
+    const db = getPrisma();
+    const clip = await db.clipProject.findFirst({ where: { id: clipId, userId: user.userId,
+      status: { in: ["pending", "cut"] } }, include: { renderJobs: { orderBy: { createdAt: "desc" }, take: 1 } } });
+    if (!clip) return Response.json({ error: "Clip is unavailable for editing." }, { status: 404 });
+    const render = clip.renderJobs[0];
+    if (render?.status === "running") return Response.json({ error: "This clip is rendering. Change the title after it finishes." }, { status: 409 });
+    if (clip.title === title) return Response.json({ clipId, title, rebuilding: false });
+    const rebuilding = Boolean(render && (render.status === "done" || render.status === "failed"));
+    await db.$transaction(async tx => {
+      await tx.clipProject.update({ where: { id: clipId }, data: { title,
+        ...(rebuilding ? { status: "pending" as const } : {}) } });
+      if (rebuilding && render) await tx.renderJob.update({ where: { id: render.id }, data: {
+        status: "queued", renderUrl: null, captionsApplied: false, musicApplied: false } });
+    });
+    return Response.json({ clipId, title, rebuilding });
   } else {
+    const clip = devClips.get(clipId, user.userId);
+    if (clip?.status === "approved") return Response.json({ error: "Title is already in the approved video. Make another edit to change it." }, { status: 409 });
     const changed = devClips.update(clipId, user.userId, { title });
     if (!changed) return Response.json({ error: "unknown clip" }, { status: 404 });
   }

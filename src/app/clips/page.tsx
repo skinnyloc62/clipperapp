@@ -68,7 +68,7 @@ export default async function ClipsPage() {
               ? <a className="btn" href={`/api/downloads/${clip.renderId}`}>Download</a> : null}
           </div>
         </div>
-        {!hosted && <TitleEditor clipId={clip.id} initialTitle={clip.title} />}
+        {!hosted && clip.status !== "approved" && <TitleEditor clipId={clip.id} initialTitle={clip.title} />}
       </article>)}</div>}
     <p className="mt-6 text-xs text-[var(--muted)]">
       What is real on this screen: every listed clip comes from a saved local cut or a published database row.

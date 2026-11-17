@@ -178,7 +178,7 @@ export default function HostedEditor({ assets, jobs, scouts }: { assets: Asset[]
         <button type="button" className="btn" onClick={() => setStart((video.current?.currentTime || 0).toFixed(1))}>Use playhead as start</button>
         <button type="button" className="btn" onClick={() => setEnd((video.current?.currentTime || 0).toFixed(1))}>Use playhead as end</button>
       </div>
-      <label className="block text-sm">Title (optional; you can edit the suggestion later)
+      <label className="block text-sm">Opening video title (optional; appears for 3.5 seconds)
         <input className="mt-1 w-full rounded-lg border border-white/20 bg-[#151519] p-2" value={title} maxLength={100}
           onChange={e => setTitle(e.target.value)} placeholder="Leave blank for a transcript-based suggestion" /></label>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={captions} onChange={e => setCaptions(e.target.checked)} /> Add speech captions when clear words are detected</label>

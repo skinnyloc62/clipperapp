@@ -11,6 +11,7 @@ import { requireUser } from "@/lib/auth";
 import { devClips, devRenders, type QaRecord } from "@/lib/clips";
 import { dataPath } from "@/lib/data-root";
 import { probeFile } from "@/lib/ffmpeg";
+import { makeTitleCard } from "../../../../../scripts/lib/title-card.mjs";
 
 const run = promisify(execFile);
 async function command(bin: string, args: string[], timeout = 360_000): Promise<void> {
@@ -92,10 +93,13 @@ export async function POST(req: Request): Promise<Response> {
   try { form = await req.formData(); }
   catch { return Response.json({ error: "expected form data" }, { status: 400 }); }
   const clipId = form.get("clipId");
+  const typedTitle = form.get("title");
   const captionsWanted = form.get("captions") !== "false";
   const music = form.get("music");
   if (typeof clipId !== "string" || !/^clip_[a-zA-Z0-9-]{1,150}$/.test(clipId))
     return Response.json({ error: "invalid clip" }, { status: 400 });
+  if (typedTitle !== null && (typeof typedTitle !== "string" || !typedTitle.trim() || typedTitle.trim().length > 100))
+    return Response.json({ error: "Title must be 1–100 characters." }, { status: 400 });
   if (music && (!(music instanceof File) || !music.type.startsWith("audio/") || music.size > 25 * 1024 * 1024))
     return Response.json({ error: "Music must be an audio file under 25 MB." }, { status: 413 });
   const clip = devClips.get(clipId, user.userId);
@@ -132,13 +136,18 @@ export async function POST(req: Request): Promise<Response> {
       try { cues = await captionImages(words.segments, temp); }
       catch { captionWarning = "Caption graphics could not be made; review this clip manually."; }
     }
+    const suggestion = typedTitle || clip.title ? null : await titleFrom(words?.text || "");
+    const title = (typeof typedTitle === "string" ? typedTitle.trim() : "") || clip.title || suggestion || null;
+    const titleCard = title ? await makeTitleCard(title, temp) : null;
     const args = ["-hide_banner", "-loglevel", "error", "-y", "-i", input];
     if (cues.length) args.push("-f", "concat", "-safe", "0", "-i", await captionTrack(cues, temp, before.durationSec));
+    if (titleCard) args.push("-loop", "1", "-i", titleCard);
     if (musicPath) args.push("-stream_loop", "-1", "-i", musicPath);
     const filters = ["[0:v]null[v0]"];
     if (cues.length) filters.push("[v0][1:v]overlay=(W-w)/2:H-h-100:shortest=1[v1]");
-    if (musicPath) filters.push(`[0:a]volume=1[a];[${cues.length ? 2 : 1}:a]volume=0.12[bg];[a][bg]amix=inputs=2:duration=first:dropout_transition=2[out]`);
-    args.push("-filter_complex", filters.join(";"), "-map", cues.length ? "[v1]" : "[v0]", "-map", musicPath ? "[out]" : "0:a?",
+    if (titleCard) filters.push(`[${cues.length ? "v1" : "v0"}][${cues.length ? 2 : 1}:v]overlay=(W-w)/2:105:enable='between(t,0,3.5)'[vtitle]`);
+    if (musicPath) filters.push(`[0:a]volume=1[a];[${1 + Number(Boolean(cues.length)) + Number(Boolean(titleCard))}:a]volume=0.12[bg];[a][bg]amix=inputs=2:duration=first:dropout_transition=2[out]`);
+    args.push("-filter_complex", filters.join(";"), "-map", titleCard ? "[vtitle]" : cues.length ? "[v1]" : "[v0]", "-map", musicPath ? "[out]" : "0:a?",
       "-t", String(before.durationSec), "-c:v", "libx264", "-preset", "veryfast", "-c:a", "aac", "-movflags", "+faststart", output);
     await command(process.env.FFMPEG_PATH || "ffmpeg", args);
     const after = await probeFile(output);
@@ -150,14 +159,14 @@ export async function POST(req: Request): Promise<Response> {
         { name: "dimensions_1080x1920", status: "PASS", detail: "ffprobe verified output dimensions" },
         { name: "duration_matches_source", status: "PASS", detail: "ffprobe verified output duration" },
         { name: "caption_accuracy", status: "NOT_TESTED", detail: cues.length ? "Caption graphics applied; Whisper words need human review" : "No captions applied" },
+        { name: "opening_title", status: titleCard ? "PASS" : "NOT_TESTED", detail: titleCard ? "Owner title graphic included in first 3.5 seconds" : "No title supplied" },
       ] };
     devRenders.save({ renderId, clipId, userId: user.userId, preset: "vertical-1080x1920", localPath: output,
       renderBlobUrl: null, stored: true, status: "done", qa, createdAt: now, updatedAt: now }, renderId);
-    const suggestion = clip.title ? null : await titleFrom(words?.text || "");
-    devClips.update(clipId, user.userId, { status: "approved", title: clip.title || suggestion || null,
+    devClips.update(clipId, user.userId, { status: "approved", title,
       captionText: words?.text || null, captionsApplied: cues.length > 0, musicApplied: Boolean(musicPath) });
-    return Response.json({ clipId, renderId, status: "approved", title: clip.title || suggestion,
-      captionsApplied: cues.length > 0, musicApplied: Boolean(musicPath), warning: captionWarning });
+    return Response.json({ clipId, renderId, status: "approved", title,
+      titleApplied: Boolean(titleCard), captionsApplied: cues.length > 0, musicApplied: Boolean(musicPath), warning: captionWarning });
   } catch (error) {
     if (existsSync(output)) rmSync(output, { force: true });
     const detail = error as Error & { code?: string | number; signal?: string; killed?: boolean; stderr?: string };

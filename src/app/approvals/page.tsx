@@ -29,7 +29,7 @@ export default async function ApprovalsPage() {
           <h2 className="mt-4 font-semibold">{clip.title || clip.asset?.filename || "Untitled clip"}</h2>
           <p className="mt-1 text-xs text-[var(--muted)]">{clip.startSec.toFixed(1)}–{clip.endSec.toFixed(1)}s · {work?.status || "queued"} · captions {work?.captionsApplied ? "applied; review accuracy" : transcript?.text ? "transcribed, not applied" : "not available"}</p>
           {work?.status === "failed" && <p className="mt-2 text-xs text-red-400">This render failed. The source is still saved; try another range.</p>}
-          <TitleEditor clipId={clip.id} initialTitle={clip.title} />
+          <TitleEditor clipId={clip.id} initialTitle={clip.title} hosted />
           <div className="mt-3"><ClipDecision clipId={clip.id} status={clip.status} ready={Boolean(render)} /></div>
         </article>;
       })}</div>}

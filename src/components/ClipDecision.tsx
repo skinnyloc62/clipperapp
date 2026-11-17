@@ -16,13 +16,26 @@ export default function ClipDecision({ clipId, status, ready = true, local = fal
     setWarning("");
     try {
       let res: Response;
+      const typedTitle = (document.getElementById(`clip-title-${clipId}`) as HTMLInputElement | null)?.value.trim() || "";
       if (local && decision === "approved") {
         const form = new FormData();
         form.append("clipId", clipId);
         form.append("captions", String(captions));
+        if (typedTitle) form.append("title", typedTitle);
         if (music) form.append("music", music);
         res = await fetch("/api/clips/enrich", { method: "POST", body: form });
       } else {
+        if (!local && decision === "approved" && typedTitle) {
+          const titleRes = await fetch("/api/studio/title", { method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ clipId, title: typedTitle }) });
+          const titleBody = await titleRes.json().catch(() => ({}));
+          if (!titleRes.ok) throw new Error(typeof titleBody.error === "string" ? titleBody.error : "Could not save the title.");
+          if (titleBody.rebuilding) {
+            setWarning("The Mac is rebuilding the video with your title. Approve it after the new preview is ready.");
+            router.refresh();
+            return;
+          }
+        }
         res = await fetch("/api/approvals", { method: "POST", headers: { "content-type": "application/json" },
           body: JSON.stringify({ clipId, decision }) });
       }

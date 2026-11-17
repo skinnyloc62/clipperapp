@@ -10,6 +10,7 @@ import { createReadStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { scoutVideo } from "./scout-video.mjs";
+import { makeTitleCard } from "./lib/title-card.mjs";
 
 const run = promisify(execFile);
 const db = new PrismaClient();
@@ -144,19 +145,23 @@ async function processJob(job) {
       try { cues = await makeCaptionImages(captions.segments, dir); }
       catch (error) { await log(job.id, "warn", `Caption images failed: ${cleanError(error)}`); cues = []; }
     }
+    const title = clip.title || await suggestTitle(captions?.text);
+    const titleCard = title ? await makeTitleCard(title, dir) : null;
     const args = ["-hide_banner", "-loglevel", "error", "-y", "-i", wide];
     if (cues.length) args.push("-f", "concat", "-safe", "0", "-i", await captionTrack(cues, dir, clip.endSec - clip.startSec));
+    if (titleCard) args.push("-loop", "1", "-i", titleCard);
     if (job.musicUrl) args.push("-stream_loop", "-1", "-i", job.musicUrl);
     const filters = [`[0:v]${baseFilter}[v0]`];
     if (cues.length) filters.push("[v0][1:v]overlay=(W-w)/2:H-h-100:shortest=1[v1]");
-    if (job.musicUrl) filters.push(`[0:a]volume=1[a];[${cues.length ? 2 : 1}:a]volume=0.12[bg];[a][bg]amix=inputs=2:duration=first:dropout_transition=2[out]`);
-    args.push("-filter_complex", filters.join(";"), "-map", cues.length ? "[v1]" : "[v0]", "-map", job.musicUrl ? "[out]" : "0:a?",
+    if (titleCard) filters.push(`[${cues.length ? "v1" : "v0"}][${cues.length ? 2 : 1}:v]overlay=(W-w)/2:105:enable='between(t,0,3.5)'[vtitle]`);
+    if (job.musicUrl) filters.push(`[0:a]volume=1[a];[${1 + Number(Boolean(cues.length)) + Number(Boolean(titleCard))}:a]volume=0.12[bg];[a][bg]amix=inputs=2:duration=first:dropout_transition=2[out]`);
+    args.push("-filter_complex", filters.join(";"), "-map", titleCard ? "[vtitle]" : cues.length ? "[v1]" : "[v0]", "-map", job.musicUrl ? "[out]" : "0:a?",
       "-t", String(clip.endSec - clip.startSec), "-c:v", "libx264", "-preset", "veryfast", "-c:a", "aac", "-movflags", "+faststart", vertical);
     let captionsApplied = cues.length > 0;
     let musicApplied = Boolean(job.musicUrl);
     try { await exec(ffmpeg, args); }
     catch (error) {
-      if (!cues.length && !job.musicUrl) throw error;
+      if (titleCard || (!cues.length && !job.musicUrl)) throw error;
       await log(job.id, "warn", `Optional caption/music mix failed; plain vertical render used: ${cleanError(error)}`);
       await exec(ffmpeg, ["-hide_banner", "-loglevel", "error", "-y", "-i", wide, "-vf", baseFilter,
         "-c:v", "libx264", "-preset", "veryfast", "-c:a", "aac", vertical]);
@@ -166,11 +171,11 @@ async function processJob(job) {
     const check = await probe(vertical);
     if (check.width !== 1080 || check.height !== 1920 || Math.abs(check.duration - (clip.endSec - clip.startSec)) > 1.5)
       throw new Error("Finished render failed dimensions or duration QA.");
-    const wideBlob = await put(`studio/${clip.userId}/${clip.id}/wide.mp4`, createReadStream(wide),
+    const outputVersion = randomUUID();
+    const wideBlob = await put(`studio/${clip.userId}/${clip.id}/${outputVersion}/wide.mp4`, createReadStream(wide),
       { access: "public", contentType: "video/mp4", addRandomSuffix: false });
-    const renderBlob = await put(`studio/${clip.userId}/${clip.id}/vertical.mp4`, createReadStream(vertical),
+    const renderBlob = await put(`studio/${clip.userId}/${clip.id}/${outputVersion}/vertical.mp4`, createReadStream(vertical),
       { access: "public", contentType: "video/mp4", addRandomSuffix: false });
-    const title = clip.title || await suggestTitle(captions?.text);
     await db.$transaction(async tx => {
       await tx.clipProject.update({ where: { id: clip.id }, data: { clipUrl: wideBlob.url,
         title: title || null, status: "cut" } });
