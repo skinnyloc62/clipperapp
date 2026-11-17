@@ -1,6 +1,6 @@
 # Progress — where this project actually stands
 
-## 2026-11-16 grounded scout checkpoint — release in progress
+## 2026-11-16 grounded scout checkpoint — deployed and checked
 
 The saved Dean song-preview segment is a negative benchmark; the owner says it
 missed the good moment and there are no good clips now. The published nonviral
@@ -21,8 +21,14 @@ exited 0; a real Neon query found eight tables with RLS on and zero public
 grants. Electron packaging/install exited 0; the installed Editor returned
 200, its 57,515,468-byte upload returned 201 with the full byte count, and
 its scout returned 200 with no verified score. The studio worker was restarted
-and is running. Hosted scout queue/worker, browser QA, and deploy remain to
-verify. See `docs/VIRAL_SCOUT_PLAN.md`. The old 85% estimate below
+and is running. Commit `d2b2aad` deployed to the stable Vercel URL. Anonymous
+`/` returned 307, `/login` 200, access-code login 200, and all seven signed-in
+pages 200. Unknown hosted scout asset returned 404; out-of-range mark 400; a
+real saved source queued with 201 and finished on the Mac as
+`no_strong_verified_candidate` with no score. At 390px mobile width, Editor
+showed the result, all seven menu links, and no horizontal overflow. The denied
+test clip's download returned 404. A physical iPhone and a true strong-clip
+benchmark are still untested. See `docs/VIRAL_SCOUT_PLAN.md`. The old 85% estimate below
 predates this additional scope and is not a current completion measurement.
 
 ## 2026-11-16 checkpoint — approximately 85% of requested creator workflow

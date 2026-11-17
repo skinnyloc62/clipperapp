@@ -1,6 +1,6 @@
 # Handoff — Street Ethics Clip Engine / HGE Clippers
 
-## Grounded scout work — 2026-11-16 (in progress)
+## Grounded scout work — 2026-11-16 (deployed and checked)
 
 The owner rejected the saved Dean song-preview segment as boring and says
 there are no good clips yet. The previously published nonviral test clip was
@@ -20,8 +20,15 @@ returned 401 for both local upload and scout; a loopback upload returned 201.
 TypeScript, 32/32 tests, a production build, and Electron package/install
 passed. The installed app's Editor returned 200, accepted the full 57,515,468
 bytes, and its scout route returned 200 with the same unscored abstention. The
-studio worker was restarted and is running. The hosted queue and live
-deployment still need verification.
+studio worker was restarted and is running. Commit `d2b2aad` reached Ready at
+`clip-pbbx7upeq-team-homegrown.vercel.app` and became the stable production
+alias. Anonymous `/` returned 307 to `/login`; `/login` returned 200. The real
+saved access code logged in with 200 and all seven authenticated pages returned
+200. An unknown hosted scout asset returned 404; an out-of-range mark returned
+400. A real saved source queued a scout with 201, and the Mac worker finished it
+with one unscored `insufficient_evidence` window. The hosted Editor showed the
+result. At 390px mobile width the seven navigation links were visible and there
+was no horizontal overflow. The denied test clip's download returned 404.
 No ChatGPT/Claude website API key is configured; the owner's ChatGPT Mac login
 is not an API credential. See `docs/VIRAL_SCOUT_PLAN.md`.
 

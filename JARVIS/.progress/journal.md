@@ -15,8 +15,14 @@ Host calls to upload and scout returned HTTP 401; loopback upload returned
 passed; eight tables have RLS and no public grants. Electron package/install
 exited 0. The installed app Editor returned 200; a 57,515,468-byte upload
 returned 201 with all bytes, and packaged scout returned 200 with no score.
-The studio worker was restarted and is running. Live hosted queue/worker and
-deployment verification are still open. No website API
+The studio worker was restarted and is running. Commit `d2b2aad` deployed
+and reached Ready. Anonymous `/` returned 307, `/login` 200, real saved code
+login 200, and all seven signed-in pages 200. Hosted scout rejected an unknown
+asset with 404 and out-of-range mark with 400. A real saved source queued with
+201; the Mac worker completed one unscored `insufficient_evidence` window.
+At 390px mobile width, Editor showed that result and all seven workspace links
+without horizontal overflow. The denied nonviral test clip stayed out of Clips
+and its download returned 404. No website API
 key for ChatGPT/Claude is configured. Read `docs/VIRAL_SCOUT_PLAN.md`.
 
 Older 85% estimate and published-clip references below predate this checkpoint.

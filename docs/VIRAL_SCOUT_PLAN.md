@@ -63,6 +63,20 @@ excluded from middleware and `requireUser()` enforces loopback auth itself.
 Nonloopback Host checks returned 401 for upload and scout. All eight Neon
 tables retain RLS with no public grants.
 
+## Release check
+
+`bash scripts/build-mac-app.sh` exited 0 and installed the app. The packaged
+Editor returned 200, accepted all 57,515,468 source bytes with 201, and its
+scout route returned 200 with no score for the negative benchmark. Commit
+`d2b2aad` deployed to production and reached Ready. Access-code login and all
+seven signed-in pages returned 200. The hosted scout API returned 404 for a
+missing asset, 400 for an out-of-range mark, and 201 for a real saved source.
+The Mac worker completed the job with one unscored `insufficient_evidence`
+window. The 390px mobile Editor displayed it; all seven navigation links were
+visible and there was no horizontal overflow. The denied clip's download
+returned 404. A physical iPhone and a confirmed strong-clip benchmark remain
+open; do not claim a measured viral hit rate.
+
 ## Risks and out of scope
 
 - Local LLaVA can describe sampled frames but cannot verify song lyrics or
