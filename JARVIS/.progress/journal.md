@@ -1,5 +1,17 @@
 # JARVIS progress — Street Ethics Clip Engine
 
+2026-11-17 save checkpoint requested by owner: code commit `d996547` is on
+main, the Vercel deployment `clip-cg5e41o6r-team-homegrown.vercel.app` is
+Ready, and the hosted Myresha draft is still `cut` with a `done` render and
+title `GTA CLUB BECAME THE MAIN EVENT`. It awaits owner approval in Approvals;
+Clips remains empty. The 22-second local test edit and installed Electron app
+still exist. Runtime changed after the live test: `channels.json` is `{}` and
+the watcher monitor reports zero live/recording channels even though watcher
+and supervisor processes are running. MyreshaTV was still live on Kick when
+checked; the Mac is not currently recording her. The Electron app was not
+running at this checkpoint. Leave the watchlist empty unless the owner asks
+to resume. The scout did not assign a viral score to the visual club scene.
+
 2026-11-17 MyreshaTV live test and title fix checkpoint: Kick reported
 `myreshatv` live (HTTP 200, playback present). The Mac Radar added her channel
 with 201; watcher status showed live=true and recording=1. A captured frame

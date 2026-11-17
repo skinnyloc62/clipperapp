@@ -1,5 +1,17 @@
 # Progress — where this project actually stands
 
+## 2026-11-17 saved handoff checkpoint
+
+Code commit `d996547` is deployed; its Vercel deployment was checked Ready.
+The Myresha hosted draft remains `cut`, its render is `done`, and its title is
+`GTA CLUB BECAME THE MAIN EVENT`. It is in Approvals, not published in Clips.
+The installed Electron app and 22-second local vertical test file still exist.
+The Mac watcher process is up but `channels.json` is now empty and the monitor
+reports zero recording channels. MyreshaTV was still live on Kick at the check,
+but the Mac is not currently monitoring her. Do not assume a running watcher
+means a stream is being recorded. The owner can choose Approve or Deny on the
+hosted draft; automatic viral scoring remains unverified for visual-only scenes.
+
 ## 2026-11-17 live MyreshaTV and opening-title checkpoint
 
 MyreshaTV is live and recording on the Mac; she is the only watched channel,

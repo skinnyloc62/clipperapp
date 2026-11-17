@@ -1,5 +1,23 @@
 # Handoff — Street Ethics Clip Engine / HGE Clippers
 
+## Saved runtime checkpoint — 2026-11-17
+
+The latest code commit is `d996547`; Vercel deployment
+`clip-cg5e41o6r-team-homegrown.vercel.app` was checked Ready and aliases
+`https://clip-mvp.vercel.app`. The real Myresha hosted draft remains `cut` with
+a `done` render and title `GTA CLUB BECAME THE MAIN EVENT`. It is visible in
+Approvals and is **not approved or published**; Clips remains empty. The
+22-second local test file and installed Electron app still exist.
+
+Current runtime differs from the live test below: `channels.json` is now `{}`.
+The watcher and supervisor processes are running but the monitor reports zero
+live/recording channels. MyreshaTV was still live on Kick when checked, yet
+the Mac was no longer recording her; Dean is also absent. The Electron app was
+not running at this checkpoint. Leave the empty watchlist as found unless the
+owner asks to resume monitoring. The next editorial decision is the owner's
+Approve or Deny on the hosted Myresha draft. No measured viral rate exists;
+the scout withheld a score for this scene because speech was uncertain.
+
 ## MyreshaTV live test and title fix — 2026-11-17
 
 The owner asked to test `kick.com/myreshatv` during a GTA 5 club scene. Kick
