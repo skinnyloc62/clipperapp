@@ -32,7 +32,7 @@ DECLARE
   tbl    text;
   tables text[] := ARRAY[
     'User', 'BrandSetting', 'MediaAsset', 'ClipProject',
-    'Transcript', 'RenderJob', 'ProcessingLog'
+    'Transcript', 'RenderJob', 'ProcessingLog', 'ScoutJob'
   ];
   applied int := 0;
   missing int := 0;
@@ -68,7 +68,7 @@ BEGIN
   RAISE NOTICE 'RLS lockdown complete: % table(s) locked down, % missing.', applied, missing;
 END $$;
 
--- Verification (run by hand; expect rls_enabled = true for all 7 rows and
+-- Verification (run by hand; expect rls_enabled = true for all 8 rows and
 -- zero rows in pg_policies):
 --
 --   SELECT c.relname, c.relrowsecurity AS rls_enabled,

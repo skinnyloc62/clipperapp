@@ -1,11 +1,38 @@
 "use client";
 
 import { upload } from "@vercel/blob/client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Asset = { id: string; filename: string; url: string; bytes: number; createdAt: string };
 type Job = { id: string; title: string | null; status: string; renderStatus: string; startSec: number; endSec: number };
+type ScoutCandidate = { startSec: number; endSec: number; origin: string; status: string;
+  note: string; transcript: string | null; visualEvidence: { atSec: number; text: string } | null;
+  assessment: { hook: string; payoff: string; editorialPotential: number; recommendedAction: string } | null };
+type ScoutReport = { overallStatus: string; candidates: ScoutCandidate[] };
+type ScoutJob = { id: string; assetId: string; status: string; markSec: number | null; reportJson: string | null; error: string | null };
+
+function parseTimeMark(raw: string): number | undefined {
+  const value = raw.trim();
+  if (!value) return undefined;
+  if (/^\d+(?:\.\d+)?$/.test(value)) return Number(value);
+  const parts = value.split(":");
+  if (parts.length < 2 || parts.length > 3 || parts.some(x => !/^\d+$/.test(x))) throw new Error("Use seconds, MM:SS, or HH:MM:SS for the mark.");
+  const nums = parts.map(Number);
+  if (nums.at(-1)! >= 60 || (parts.length === 3 && nums[1] >= 60)) throw new Error("Minutes and seconds must be under 60.");
+  return parts.length === 2 ? nums[0] * 60 + nums[1] : nums[0] * 3600 + nums[1] * 60 + nums[2];
+}
+function stamp(sec: number): string {
+  const n = Math.floor(sec);
+  return `${Math.floor(n / 3600)}:${String(Math.floor(n / 60) % 60).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
+}
+function parseReport(json: string | null): ScoutReport | null {
+  if (!json) return null;
+  try {
+    const report = JSON.parse(json);
+    return Array.isArray(report?.candidates) ? report as ScoutReport : null;
+  } catch { return null; }
+}
 
 async function post<T>(path: string, data: unknown): Promise<T> {
   const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
@@ -14,7 +41,7 @@ async function post<T>(path: string, data: unknown): Promise<T> {
   return body as T;
 }
 
-export default function HostedEditor({ assets, jobs }: { assets: Asset[]; jobs: Job[] }) {
+export default function HostedEditor({ assets, jobs, scouts }: { assets: Asset[]; jobs: Job[]; scouts: ScoutJob[] }) {
   const router = useRouter();
   const video = useRef<HTMLVideoElement>(null);
   const [chosen, setChosen] = useState<Asset | null>(assets[0] || null);
@@ -27,6 +54,17 @@ export default function HostedEditor({ assets, jobs }: { assets: Asset[]; jobs: 
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
+  const [scoutMark, setScoutMark] = useState("");
+  const [scoutBusy, setScoutBusy] = useState(false);
+  const chosenScouts = scouts.filter(s => s.assetId === chosen?.id);
+  const latestScout = chosenScouts[0];
+  const scoutReport = parseReport(latestScout?.reportJson || null);
+
+  useEffect(() => {
+    if (!scouts.some(s => s.status === "queued" || s.status === "running")) return;
+    const timer = setInterval(() => router.refresh(), 8000);
+    return () => clearInterval(timer);
+  }, [router, scouts]);
 
   async function uploadFile(file: File, kind: "video" | "music") {
     if (!file.type.startsWith(kind === "video" ? "video/" : "audio/")) throw new Error(`Choose a ${kind} file with a recognized media type.`);
@@ -73,6 +111,19 @@ export default function HostedEditor({ assets, jobs }: { assets: Asset[]; jobs: 
     finally { setBusy(false); }
   }
 
+  async function queueScout() {
+    if (!chosen) return;
+    setScoutBusy(true); setError(""); setProgress("Queuing video scout…");
+    try {
+      const markSec = parseTimeMark(scoutMark);
+      if (markSec != null && duration != null && markSec >= duration) throw new Error("The mark is outside this video.");
+      await post("/api/studio/scout", { assetId: chosen.id, ...(markSec == null ? {} : { markSec }) });
+      setProgress("Scout queued. The Mac will scan it while online.");
+      router.refresh();
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not queue scout."); }
+    finally { setScoutBusy(false); }
+  }
+
   return <div className="space-y-7">
     <section className="card space-y-4 p-5">
       <h2 className="font-semibold">1. Add a long video</h2>
@@ -87,7 +138,34 @@ export default function HostedEditor({ assets, jobs }: { assets: Asset[]; jobs: 
     </section>
 
     {chosen && <section className="card space-y-4 p-5">
-      <h2 className="font-semibold">2. Pick the moment</h2>
+      <h2 className="font-semibold">2. Find moments (optional)</h2>
+      <p className="text-sm text-[var(--muted)]">Scan real audio and sampled frames for reviewable moments. Scores are editorial potential, never a viral percentage. Weak evidence gets no score.</p>
+      <label className="block text-sm">Moment you noticed (optional)
+        <input className="mt-1 w-full rounded-lg border border-white/20 bg-[#151519] p-2" value={scoutMark}
+          onChange={e => setScoutMark(e.target.value)} placeholder="4:04:23, 04:23, or seconds" />
+      </label>
+      <button type="button" className="btn" disabled={busy || scoutBusy} onClick={() => void queueScout()}>Scout this video</button>
+      {latestScout && <div className="space-y-3 border-t border-white/10 pt-4 text-sm">
+        <p className="font-medium">Latest scout: {latestScout.status}{latestScout.markSec != null ? ` · marked ${stamp(latestScout.markSec)}` : ""}</p>
+        {latestScout.error && <p className="text-red-400">{latestScout.error}</p>}
+        {scoutReport && <>
+          {scoutReport.overallStatus !== "review_candidates" && <p className="text-[var(--muted)]">No strong verified moment found. You can add a time mark or choose a range yourself.</p>}
+          {scoutReport.candidates.map((c, i) => <div key={`${c.startSec}-${i}`} className="rounded-lg border border-white/10 p-3">
+            <p className="font-medium">{stamp(c.startSec)}–{stamp(c.endSec)} · {c.origin} · {c.assessment ? `${c.assessment.editorialPotential}/100 editorial potential` : "No verified score"}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{c.note}</p>
+            {c.assessment && <p className="mt-2 text-xs">Hook: “{c.assessment.hook}” · payoff: “{c.assessment.payoff}”</p>}
+            {c.visualEvidence?.text && <p className="mt-2 text-xs text-[var(--muted)]">Frame at {stamp(c.visualEvidence.atSec)}: {c.visualEvidence.text}</p>}
+            <button type="button" className="btn mt-3" onClick={() => {
+              setStart(String(c.startSec)); setEnd(String(c.endSec));
+              if (c.assessment && !title) setTitle(c.assessment.hook.slice(0, 60));
+            }}>Use this range</button>
+          </div>)}
+        </>}
+      </div>}
+    </section>}
+
+    {chosen && <section className="card space-y-4 p-5">
+      <h2 className="font-semibold">3. Pick the moment</h2>
       <video ref={video} key={chosen.id} src={chosen.url} controls playsInline preload="metadata"
         onLoadedMetadata={e => { const d = e.currentTarget.duration; if (Number.isFinite(d)) setDuration(d); }}
         className="max-h-[480px] w-full rounded-lg bg-black" />

@@ -118,6 +118,7 @@ function startServer(port) {
     CLIPMVP_DATA_DIR: path.join(app.getPath("userData"), "data"),
     FFMPEG_PATH: process.env.FFMPEG_PATH || "/opt/homebrew/bin/ffmpeg",
     FFPROBE_PATH: process.env.FFPROBE_PATH || "/opt/homebrew/bin/ffprobe",
+    WHISPER_PATH: process.env.WHISPER_PATH || "/opt/homebrew/bin/whisper",
     // Run Electron's bundled Node, not a system node that may be missing.
     ELECTRON_RUN_AS_NODE: "1",
   });

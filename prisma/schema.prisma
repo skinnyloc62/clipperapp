@@ -29,6 +29,7 @@ model User {
   brandSetting BrandSetting?
   mediaAssets  MediaAsset[]
   clipProjects ClipProject[]
+  scoutJobs    ScoutJob[]
 }
 
 model BrandSetting {
@@ -67,6 +68,7 @@ model MediaAsset {
   updatedAt   DateTime    @updatedAt
 
   clipProjects ClipProject[]
+  scoutJobs    ScoutJob[]
 
   @@index([userId])
   @@index([status])
@@ -140,6 +142,24 @@ model RenderJob {
   logs ProcessingLog[]
 
   @@index([clipProjectId])
+  @@index([status])
+}
+
+model ScoutJob {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assetId     String
+  asset       MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  markSec     Float?
+  status      JobStatus  @default(queued)
+  reportJson  String?
+  error       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([assetId])
   @@index([status])
 }
 

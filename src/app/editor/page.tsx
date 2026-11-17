@@ -5,7 +5,7 @@ import HostedEditor from "@/components/HostedEditor";
 import { requireUser } from "@/lib/auth";
 import { getPrisma } from "@/lib/db";
 import Icon from "@/components/Icon";
-import { MAX_CLIP_SEC, MAX_UPLOAD_MB } from "@/lib/validators";
+import { MAX_CLIP_SEC } from "@/lib/validators";
 
 /* Stage 03 — Cut. Hosts the real pipeline driver: upload → validate → cut →
    render → download, each step posting to the same routes the contract tests
@@ -19,11 +19,12 @@ export default async function EditorPage() {
     const user = await requireUser();
     if (user instanceof Response) return <p>Sign in to open the editor.</p>;
     const db = getPrisma();
-    const [assets, clips] = await Promise.all([
+    const [assets, clips, scouts] = await Promise.all([
       db.mediaAsset.findMany({ where: { userId: user.userId, mediaType: "video", status: { in: ["uploaded", "validated"] } },
         orderBy: { createdAt: "desc" }, take: 20 }),
       db.clipProject.findMany({ where: { userId: user.userId, assetId: { not: null } }, include: { renderJobs: true },
         orderBy: { createdAt: "desc" }, take: 30 }),
+      db.scoutJob.findMany({ where: { userId: user.userId }, orderBy: { createdAt: "desc" }, take: 30 }),
     ]);
     return <div className="space-y-7"><PageHeader kicker="Cloud studio" title="Editor"
       description="Upload a long video from a laptop or iPhone, mark a moment, and queue a vertical clip. Processing runs on the Mac when it is online."
@@ -31,7 +32,9 @@ export default async function EditorPage() {
       <HostedEditor assets={assets.filter(a => a.blobUrl).map(a => ({ id: a.id, filename: a.filename || "Video", url: a.blobUrl,
         bytes: a.bytes, createdAt: a.createdAt.toISOString() }))}
         jobs={clips.map(c => ({ id: c.id, title: c.title, status: c.status, renderStatus: c.renderJobs[0]?.status || "queued",
-          startSec: c.startSec, endSec: c.endSec }))} />
+          startSec: c.startSec, endSec: c.endSec }))}
+        scouts={scouts.map(s => ({ id: s.id, assetId: s.assetId, status: s.status,
+          markSec: s.markSec, reportJson: s.reportJson, error: s.error }))} />
     </div>;
   }
   return (
@@ -54,7 +57,7 @@ export default async function EditorPage() {
         }
       />
 
-      <PipelinePanel maxClipSec={MAX_CLIP_SEC} maxUploadMb={MAX_UPLOAD_MB} />
+      <PipelinePanel maxClipSec={MAX_CLIP_SEC} maxUploadMb={1024} />
     </div>
   );
 }

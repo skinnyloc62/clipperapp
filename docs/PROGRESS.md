@@ -1,5 +1,30 @@
 # Progress — where this project actually stands
 
+## 2026-11-16 grounded scout checkpoint — release in progress
+
+The saved Dean song-preview segment is a negative benchmark; the owner says it
+missed the good moment and there are no good clips now. The published nonviral
+test clip was denied, and production Clips showed its empty state. Live Dean
+monitoring stays off. A local scout CLI and both Editor entry points now exist,
+with a hosted queue for the Mac worker. The scout returns exact source windows
+and only scores when it can verify a hook and payoff in transcript evidence.
+On the negative Dean file, the real CLI and local HTTP run returned
+`no_strong_verified_candidate`, one `insufficient_evidence` window, and no
+score. No claim of viral prediction or successful positive scouting is made.
+
+The new local streaming upload saved a 57,515,468-byte source byte for byte.
+Next middleware had truncated the first trial at 10,485,760 bytes; the route
+now streams outside middleware and enforces authentication itself. A
+nonloopback Host returned HTTP 401, loopback returned 201. TypeScript exited 0,
+32 tests passed, production build exited 0, Prisma schema push and RLS script
+exited 0; a real Neon query found eight tables with RLS on and zero public
+grants. Electron packaging/install exited 0; the installed Editor returned
+200, its 57,515,468-byte upload returned 201 with the full byte count, and
+its scout returned 200 with no verified score. The studio worker was restarted
+and is running. Hosted scout queue/worker, browser QA, and deploy remain to
+verify. See `docs/VIRAL_SCOUT_PLAN.md`. The old 85% estimate below
+predates this additional scope and is not a current completion measurement.
+
 ## 2026-11-16 checkpoint — approximately 85% of requested creator workflow
 
 The hosted creator workflow is deployed at `https://clip-mvp.vercel.app` from

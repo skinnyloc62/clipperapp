@@ -16,13 +16,17 @@ type Probe = { durationSec: number; codec: string; width: number; height: number
 type Cut = { clipId: string; startSec: number; endSec: number };
 type QaCheck = { name: string; status: string; detail: string };
 type Render = { renderId: string; qaStatus: string; checks: QaCheck[] };
+type ScoutCandidate = { startSec: number; endSec: number; origin: string; status: string; note: string;
+  visualEvidence: { atSec: number; text: string } | null;
+  assessment: { hook: string; payoff: string; editorialPotential: number } | null };
+type ScoutReport = { overallStatus: string; candidates: ScoutCandidate[] };
 
 const STEPS: { key: StepKey; label: string; route: string; blurb: string }[] = [
   {
     key: "upload",
     label: "Upload source",
-    route: "POST /api/uploads",
-    blurb: "Stores the bytes server-side and returns an asset ID. The browser never sends a path.",
+    route: "PUT /api/uploads/local",
+    blurb: "Streams the video into this Mac's app data folder and returns an asset ID.",
   },
   {
     key: "validate",
@@ -44,8 +48,20 @@ const STEPS: { key: StepKey; label: string; route: string; blurb: string }[] = [
   },
 ];
 
-/* The multipart route caps request bodies below the function payload limit. */
-const PAYLOAD_LIMIT_MB = 4.5;
+function parseMark(raw: string): number | undefined {
+  const value = raw.trim();
+  if (!value) return undefined;
+  if (/^\d+(?:\.\d+)?$/.test(value)) return Number(value);
+  const parts = value.split(":");
+  if (parts.length < 2 || parts.length > 3 || parts.some(x => !/^\d+$/.test(x))) throw new Error("Use seconds, MM:SS, or HH:MM:SS.");
+  const n = parts.map(Number);
+  if (n.at(-1)! >= 60 || (n.length === 3 && n[1] >= 60)) throw new Error("Minutes and seconds must be under 60.");
+  return n.length === 2 ? n[0] * 60 + n[1] : n[0] * 3600 + n[1] * 60 + n[2];
+}
+function stamp(sec: number): string {
+  const n = Math.floor(sec);
+  return `${Math.floor(n / 3600)}:${String(Math.floor(n / 60) % 60).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
+}
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -105,9 +121,10 @@ export default function PipelinePanel({
   const [probe, setProbe] = useState<Probe | null>(null);
   const [cut, setCut] = useState<Cut | null>(null);
   const [render, setRender] = useState<Render | null>(null);
-  const [approved, setApproved] = useState(false);
-  const [approvalBusy, setApprovalBusy] = useState(false);
-  const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [scoutReport, setScoutReport] = useState<ScoutReport | null>(null);
+  const [scoutMark, setScoutMark] = useState("");
+  const [scoutBusy, setScoutBusy] = useState(false);
+  const [scoutError, setScoutError] = useState<string | null>(null);
   const [startSec, setStartSec] = useState("0");
   const [endSec, setEndSec] = useState("");
   const [status, setStatus] = useState<Record<StepKey, StepStatus>>({
@@ -146,8 +163,9 @@ export default function PipelinePanel({
     setProbe(null);
     setCut(null);
     setRender(null);
-    setApproved(false);
-    setApprovalError(null);
+    setScoutReport(null);
+    setScoutMark("");
+    setScoutError(null);
     setStatus({ upload: "idle", validate: "idle", cut: "idle", render: "idle" });
     setError(null);
     setStartSec("0");
@@ -162,8 +180,9 @@ export default function PipelinePanel({
     setProbe(null);
     setCut(null);
     setRender(null);
-    setApproved(false);
-    setApprovalError(null);
+    setScoutReport(null);
+    setScoutMark("");
+    setScoutError(null);
     setStatus({ upload: "idle", validate: "idle", cut: "idle", render: "idle" });
     setError(null);
     setStartSec("0");
@@ -194,14 +213,13 @@ export default function PipelinePanel({
     try {
       if (step === "upload") {
         if (!file) throw new Error("Choose a source file first.");
-        if (file.size > PAYLOAD_LIMIT_MB * 1024 * 1024) {
+        if (file.size > maxUploadMb * 1024 * 1024) {
           throw new Error(
-            `This route caps multipart bodies at ${PAYLOAD_LIMIT_MB} MB and the file is ${formatBytes(file.size)}.`,
+            `This Mac accepts videos up to ${maxUploadMb} MB; this file is ${formatBytes(file.size)}.`,
           );
         }
-        const form = new FormData();
-        form.append("file", file);
-        const res = await fetch("/api/uploads", { method: "POST", body: form });
+        const res = await fetch("/api/uploads/local", { method: "PUT", body: file,
+          headers: { "content-type": file.type || "application/octet-stream", "x-filename": encodeURIComponent(file.name) } });
         const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
         if (!res.ok) throw new Error(serverMessage(data, `upload failed (HTTP ${res.status})`));
         const assetId = String(data?.assetId ?? "");
@@ -276,6 +294,20 @@ export default function PipelinePanel({
     } finally {
       setBusy(null);
     }
+  }
+
+  async function runScout(): Promise<void> {
+    if (!asset || !probe || scoutBusy) return;
+    setScoutBusy(true); setScoutError(null);
+    try {
+      const markSec = parseMark(scoutMark);
+      if (markSec != null && markSec >= probe.durationSec) throw new Error("The mark is outside this video.");
+      const data = await postJson<{ report: ScoutReport }>("/api/scout", { assetId: asset.assetId,
+        ...(markSec == null ? {} : { markSec }) });
+      setScoutReport(data.report);
+      note(`scout · ${data.report.overallStatus} · ${data.report.candidates.length} candidate window(s)`);
+    } catch (e) { setScoutError((e as Error).message || "Scout failed."); }
+    finally { setScoutBusy(false); }
   }
 
   /* One CTA, always pointing at the first thing that is actually missing. */
@@ -377,7 +409,7 @@ export default function PipelinePanel({
                     Drop a video, or choose a file
                   </span>
                   <span className="mt-1 block text-[12px] leading-relaxed text-[var(--muted)]">
-                    MP4, MOV, or WebM. This route accepts up to {PAYLOAD_LIMIT_MB} MB per request.
+                    MP4, MOV, or WebM. This Mac accepts up to {maxUploadMb} MB per video.
                   </span>
                 </span>
               </label>
@@ -483,24 +515,9 @@ export default function PipelinePanel({
                 <p className="mt-2 text-[11.5px] leading-relaxed text-[var(--muted)]">
                   The vertical render passed its machine checks. Approve this clip to unlock its download.
                 </p>
-                {approved ? <a href={render ? `/api/downloads/${render.renderId}` : "#"}
-                  className="btn btn-primary mt-3.5 w-full" download>
-                  <Icon name="external" size={14} /> Download render
-                </a> : <button type="button" className="btn btn-primary mt-3.5 w-full"
-                  disabled={!cut || approvalBusy}
-                  onClick={async () => {
-                    if (!cut) return;
-                    setApprovalBusy(true);
-                    setApprovalError(null);
-                    try {
-                      await postJson("/api/approvals", { clipId: cut.clipId, decision: "approved" });
-                      setApproved(true);
-                    } catch (e) { setApprovalError((e as Error).message); }
-                    finally { setApprovalBusy(false); }
-                  }}>
-                  {approvalBusy ? "Approving…" : "Approve this clip"}
-                </button>}
-                {approvalError ? <p className="mt-2 text-xs text-[var(--amber)]">{approvalError}</p> : null}
+                <a href="/clips" className="btn btn-primary mt-3.5 w-full">
+                  <Icon name="inbox" size={14} /> Review in Clip Inbox
+                </a>
               </>
             )}
           </section>
@@ -565,6 +582,33 @@ export default function PipelinePanel({
         </aside>
       </div>
 
+      {probe && asset ? <section className="card p-4" aria-labelledby="scout-heading">
+        <h2 id="scout-heading" className="text-[13px] font-semibold">Find moments in this video</h2>
+        <p className="mt-2 text-xs text-[var(--muted)]">The scout checks real audio, speech, and one sampled frame per window. Weak evidence gets no score. A score is editorial potential, not a viral percentage.</p>
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <label className="text-xs">Time you noticed (optional)
+            <input className="field mt-1 block !w-[180px]" value={scoutMark} onChange={e => setScoutMark(e.target.value)}
+              placeholder="4:04:23 or seconds" />
+          </label>
+          <button type="button" className="btn" disabled={scoutBusy || busy !== null} onClick={() => void runScout()}>
+            {scoutBusy ? "Scanning…" : "Scout this video"}
+          </button>
+        </div>
+        {scoutError && <p role="alert" className="mt-2 text-xs text-red-400">{scoutError}</p>}
+        {scoutReport && <div className="mt-4 space-y-3 border-t border-white/10 pt-3">
+          {scoutReport.overallStatus !== "review_candidates" && <p className="text-xs text-[var(--muted)]">No strong verified moment found. Add a time mark or choose a range yourself.</p>}
+          {scoutReport.candidates.map((c, i) => <div className="rounded-lg border border-white/10 p-3 text-xs" key={`${c.startSec}-${i}`}>
+            <p className="font-medium">{stamp(c.startSec)}–{stamp(c.endSec)} · {c.origin} · {c.assessment ? `${c.assessment.editorialPotential}/100 editorial potential` : "No verified score"}</p>
+            <p className="mt-1 text-[var(--muted)]">{c.note}</p>
+            {c.assessment && <p className="mt-2">Hook: “{c.assessment.hook}” · payoff: “{c.assessment.payoff}”</p>}
+            {c.visualEvidence?.text && <p className="mt-1 text-[var(--muted)]">Frame at {stamp(c.visualEvidence.atSec)}: {c.visualEvidence.text}</p>}
+            <button type="button" className="btn mt-2" onClick={() => { setStartSec(String(c.startSec)); setEndSec(String(c.endSec)); }}>
+              Use this range
+            </button>
+          </div>)}
+        </div>}
+      </section> : null}
+
       {render ? (
         <section className="card" aria-labelledby="qa-heading">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] px-4 py-3">
@@ -624,7 +668,7 @@ export default function PipelinePanel({
           items={[
             {
               label: "Local only",
-              body: "This build stores media on the machine running the dev server and shells out to FFmpeg. On a serverless host neither exists, so the same buttons report that instead of pretending to work.",
+              body: "This Mac stores the source in its app data folder and runs FFmpeg locally. Hosted uploads use Blob and wait for the Mac worker.",
             },
             {
               label: "Order matters",
@@ -632,7 +676,7 @@ export default function PipelinePanel({
             },
             {
               label: "Limits",
-              body: `One request may carry up to ${PAYLOAD_LIMIT_MB} MB here, and a clip may span at most ${maxClipSec}s. The app-wide limit is ${maxUploadMb} MB, which needs direct-to-storage upload.`,
+              body: `The local source limit is ${maxUploadMb} MB, and a clip may span at most ${maxClipSec}s. Long uploads stream to disk without buffering the entire file in memory.`,
             },
             {
               label: "Download",

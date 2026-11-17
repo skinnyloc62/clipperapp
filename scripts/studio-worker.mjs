@@ -9,6 +9,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { scoutVideo } from "./scout-video.mjs";
 
 const run = promisify(execFile);
 const db = new PrismaClient();
@@ -186,11 +187,30 @@ async function processJob(job) {
     console.error(`FAILED ${clip.id} ${job.id}: ${message}`);
   } finally { if (dir) await rm(dir, { recursive: true, force: true }); }
 }
+async function processScoutJob(job) {
+  const claimed = await db.scoutJob.updateMany({ where: { id: job.id, status: "queued" }, data: { status: "running" } });
+  if (!claimed.count) return;
+  try {
+    if (!job.asset?.blobUrl || job.asset.mediaType !== "video") throw new Error("Source upload is missing.");
+    const report = await scoutVideo(job.asset.blobUrl, { marks: job.markSec == null ? [] : [job.markSec], limit: 5 });
+    report.source = job.asset.id;
+    report.sourceLabel = job.asset.filename || "Uploaded video";
+    await db.scoutJob.update({ where: { id: job.id }, data: { status: "done", reportJson: JSON.stringify(report), error: null } });
+    console.log(`SCOUT DONE ${job.id} ${report.overallStatus} candidates=${report.candidates.length}`);
+  } catch (error) {
+    const message = cleanError(error);
+    await db.scoutJob.update({ where: { id: job.id }, data: { status: "failed", error: message } });
+    console.error(`SCOUT FAILED ${job.id}: ${message}`);
+  }
+}
 async function tick() {
   const job = await db.renderJob.findFirst({ where: { status: "queued", clipProject: { status: "pending", asset: { status: { in: ["uploaded", "validated"] } } } },
     include: { clipProject: { include: { asset: true } } }, orderBy: { createdAt: "asc" } });
-  if (job) await processJob(job);
-  return Boolean(job);
+  if (job) { await processJob(job); return true; }
+  const scout = await db.scoutJob.findFirst({ where: { status: "queued", asset: { status: { in: ["uploaded", "validated"] } } },
+    include: { asset: true }, orderBy: { createdAt: "asc" } });
+  if (scout) await processScoutJob(scout);
+  return Boolean(scout);
 }
 try {
   do { await tick(); if (!once) await new Promise(resolve => setTimeout(resolve, 15_000)); } while (!once);

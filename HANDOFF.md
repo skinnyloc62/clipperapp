@@ -1,5 +1,30 @@
 # Handoff — Street Ethics Clip Engine / HGE Clippers
 
+## Grounded scout work — 2026-11-16 (in progress)
+
+The owner rejected the saved Dean song-preview segment as boring and says
+there are no good clips yet. The previously published nonviral test clip was
+denied; the production Clips page returned its empty state. Do not republish
+that clip or treat the saved segment as a positive scouting benchmark. Dean
+live monitoring remains off.
+
+The new scout reads real video audio, transcribes candidate windows locally,
+samples a frame, and withholds a score when it cannot verify an opening hook
+and later payoff. The saved negative Dean segment returned one 16.4–60.4s
+candidate with `insufficient_evidence`, no score, and
+`no_strong_verified_candidate`. A real 57,515,468-byte local upload saved all
+57,515,468 bytes; an HTTP scout run on that upload returned the same abstention.
+The local upload bypasses Next middleware's 10 MB request-body clone limit but
+`requireUser()` now enforces the loopback host rule itself. A nonloopback Host
+returned 401 for both local upload and scout; a loopback upload returned 201.
+TypeScript, 32/32 tests, a production build, and Electron package/install
+passed. The installed app's Editor returned 200, accepted the full 57,515,468
+bytes, and its scout route returned 200 with the same unscored abstention. The
+studio worker was restarted and is running. The hosted queue and live
+deployment still need verification.
+No ChatGPT/Claude website API key is configured; the owner's ChatGPT Mac login
+is not an API credential. See `docs/VIRAL_SCOUT_PLAN.md`.
+
 ## Creator studio update — 2026-11-16 (deployed and live-verified)
 
 The owner expanded the hosted product from a viewer to a creator workflow.
@@ -54,8 +79,9 @@ clip returned Clips to one row and made its download return 404. A separate
 hosted job uploaded an eight-second excerpt of owner-provided music and
 finished with `musicApplied=true`. The 390px mobile browser showed the full
 seven-item drawer with no horizontal overflow. Test-only review jobs were
-denied, leaving a truthful empty Approvals state. The one previously published
-Dean test clip remains visible and is explicitly labeled as non-viral.
+denied, leaving a truthful empty Approvals state. At that checkpoint the
+previously published Dean test clip was visible and labeled non-viral; it was
+denied in the later scout checkpoint above.
 
 This verifies the workflow in a desktop browser at phone width, not on a
 physical iPhone. The production browser job had no usable speech captions;

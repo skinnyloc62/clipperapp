@@ -80,6 +80,9 @@ export const config = {
     "/editor/:path*",
     "/radar/:path*",
     "/settings/:path*",
-    "/api/:path*",
+    // The local long-video route streams its body and calls requireUser() in
+    // the route. Passing it through middleware clones and truncates the body
+    // at Next's 10 MB middleware limit even though the client sent more.
+    "/api/((?!uploads/local(?:/|$)).*)",
   ],
 };

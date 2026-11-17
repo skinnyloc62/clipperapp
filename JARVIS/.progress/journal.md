@@ -1,5 +1,26 @@
 # JARVIS progress — Street Ethics Clip Engine
 
+2026-11-16 newer grounded-scout checkpoint, release in progress: The owner
+says the saved Dean song preview was the wrong, boring moment and there are
+currently no good clips. The old nonviral published test was denied; hosted
+Clips returned its empty state. Live Dean monitoring remains off. The local
+scout CLI, hosted scout queue/worker path, and Editor entry points now exist.
+The negative video returned one 16.4–60.4s `insufficient_evidence` window,
+no score, and `no_strong_verified_candidate`, both by CLI and local HTTP.
+A real 57,515,468-byte local upload saved the full byte count. A first trial
+was truncated to 10,485,760 bytes by Next middleware; the route now streams
+outside middleware and the server-side auth enforces loopback. Nonloopback
+Host calls to upload and scout returned HTTP 401; loopback upload returned
+201. TypeScript, 32 tests, production build, Neon schema push, and RLS query
+passed; eight tables have RLS and no public grants. Electron package/install
+exited 0. The installed app Editor returned 200; a 57,515,468-byte upload
+returned 201 with all bytes, and packaged scout returned 200 with no score.
+The studio worker was restarted and is running. Live hosted queue/worker and
+deployment verification are still open. No website API
+key for ChatGPT/Claude is configured. Read `docs/VIRAL_SCOUT_PLAN.md`.
+
+Older 85% estimate and published-clip references below predate this checkpoint.
+
 2026-11-16 checkpoint: approximately **85%** of the new owner request is done.
 This percentage is an estimate of implementation and proof, not a measured
 viral-success rate. Commit `98db33d` deployed the creator studio to
@@ -16,8 +37,9 @@ Clips and changed its download to 404. A separate browser job uploaded an
 eight-second excerpt of owner-provided music and completed with
 `musicApplied=true`. At 390px width the phone-size drawer showed all seven
 links with no horizontal overflow. Test QA review jobs were denied; Approvals
-now has a truthful empty state. One earlier real Dean test clip stays published
-and is labeled as a non-viral test. A physical iPhone has not been tested.
+had a truthful empty state. At that checkpoint one earlier real Dean test clip
+was published and labeled non-viral; it was denied in the newer checkpoint
+above. A physical iPhone has not been tested.
 
 Code now includes all seven hosted workspace pages, direct browser-to-Vercel
 Blob upload, manual video range selection, title editing, an optional music

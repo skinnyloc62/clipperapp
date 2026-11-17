@@ -1,5 +1,5 @@
 import { getIronSession, type IronSession } from "iron-session";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 export interface SessionData {
   userId?: string;
@@ -45,8 +45,8 @@ export const WORKSPACE_USER_ID = "household";
  *
  *  1. `process.env.VERCEL` short-circuits to `false`, so a Vercel deploy is
  *     always gated even if the flag is copied into its env vars by mistake.
- *  2. The middleware additionally requires a loopback hostname, so a dev server
- *     exposed on the LAN still asks for the code.
+ *  2. Both the middleware and `requireUser()` require a loopback hostname, so
+ *     routes excluded from middleware still ask for the code on the LAN.
  *  3. It never widens the API boundary: `requireUser()` returns the same
  *     workspace id the access-code login does, so local writes land in the same
  *     rows the hosted app reads. Skipping the login screen is not the same as
@@ -77,7 +77,13 @@ export async function requireUser(): Promise<{ userId: string; email?: string } 
   }
   // 2. Local-only bypass. Same workspace id the access code resolves to, so a
   //    local session writes to the exact rows the hosted app reads.
-  if (authBypassActive()) return { userId: WORKSPACE_USER_ID };
+  if (authBypassActive()) {
+    const rawHost = (await headers()).get("host") || "";
+    const host = rawHost.startsWith("[")
+      ? rawHost.slice(0, rawHost.indexOf("]") + 1)
+      : rawHost.split(":")[0];
+    if (isLoopbackHost(host)) return { userId: WORKSPACE_USER_ID };
+  }
   return Response.json({ error: "unauthorized" }, { status: 401 });
 }
 
